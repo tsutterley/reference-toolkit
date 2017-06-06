@@ -85,7 +85,7 @@ def smart_citekey(doi):
 	#-- return the final citekey from the function
 	return '{0}:{1:4d}{2}'.format(author,year,key)
 
-#-- main program that calls gen_citekey()
+#-- main program that calls smart_citekey()
 def main():
 	#-- run for each DOI entered after the program
 	for doi in sys.argv[1:]:

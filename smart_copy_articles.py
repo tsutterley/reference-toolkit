@@ -160,7 +160,7 @@ def usage():
 	print(' -D X, --doi=X\tDOI of the publication')
 	print(' -S, --supplement\tFile is a supplemental file\n')
 
-#-- main program that calls copy_journal_articles()
+#-- main program that calls smart_copy_articles()
 def main():
 	long_options = ['help','doi=','supplement']
 	optlist,arglist=getopt.getopt(sys.argv[1:],'hD:S',long_options)

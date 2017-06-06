@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (05/2017)
+ris_to_bibtex.py (06/2017)
 Converts RIS bibliography files into bibtex files with Universal citekeys
 	https://en.wikipedia.org/wiki/RIS_(file_format)
 
 COMMAND LINE OPTIONS:
 	-O, --output: Output to bibtex files (default to terminal)
-	-V, --verbose: Verbose output of input files and entries
+	-V, --verbose: Verbose output of input and output files
 
 PROGRAM DEPENDENCIES:
 	gen_citekey.py: Generates Papers2-like cite keys for BibTeX
@@ -20,6 +20,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 06/2017: added T2 for RIS entries with journal in T2 field
 	Updated 05/2017: Convert special characters with language_conversion program
 	Written 05/2017
 """
@@ -34,14 +35,14 @@ from language_conversion import language_conversion
 
 def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	#-- easily mappable RIS and bibtex fields
-	bibtex_field_map = {'JA':'journal','JO':'journal','VL':'volume',
-		'IS':'number','PB':'publisher','SN':'issn','UR':'url'}
+	bibtex_field_map = {'JA':'journal','JO':'journal','T2':'journal',
+		'VL':'volume','IS':'number','PB':'publisher','SN':'issn','UR':'url'}
 	#-- map between RIS TY entries and bibtex entries
 	bibtex_entry_map = {'JOUR':'article','BOOK':'book','CHAP':'inbook',
 		'CONF':'proceedings','RPRT':'techreport','THES':'phdthesis'}
 	#-- fields of interest for parsing an RIS file
-	RIS_fields = ['TY','AU','A1','TI','T1','JA','JO','PY','Y1','VL','IS','SP',
-		'EP','PB','SN','UR','L3','M3','ER','DO','N1','KW','AB','KW']
+	RIS_fields = ['TY','AU','A1','TI','T1','T2','JA','JO','PY','Y1','VL','IS',
+		'SP','EP','PB','SN','UR','L3','M3','ER','DO','N1','KW','AB','KW']
 	#-- regular expression for reading RIS files
 	RIS_regex = '({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
 	R1 = re.compile(RIS_regex, flags=re.IGNORECASE)
@@ -204,7 +205,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 def usage():
 	print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
 	print(' -O, --output\tOutput to bibtex files (default to terminal)')
-	print(' -V, --verbose\tVerbose output of input files and entries\n')
+	print(' -V, --verbose\tVerbose output of input and output files\n')
 
 #-- main program that calls ris_to_bibtex()
 def main():
