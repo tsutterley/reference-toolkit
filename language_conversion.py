@@ -165,8 +165,6 @@ def language_conversion():
     language_conversion_list.append(("\$","$",u"\u0024","$"))
     language_conversion_list.append(("\#","#",u"\u0023","#"))
     language_conversion_list.append(("\&","&",u"\u0026","&"))
-    language_conversion_list.append(("\{","{",u"\u007B","{"))
-    language_conversion_list.append(("\}","}",u"\u007D","}"))
     language_conversion_list.append(("\_","_",u"\u005F","_"))
     #-- return the list of symbols to iterate
     return language_conversion_list
