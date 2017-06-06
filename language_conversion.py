@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-language_conversion_list.py (05/2017)
+language_conversion_list.py (06/2017)
 Mapping for converting to/from python unicode for special characters
     1st column: latex format for output bibtex files
     2nd column: character with combining modifier unicode
@@ -12,6 +12,7 @@ NOTES:
 		can add more entries to language_conversion_list
 
 UPDATE HISTORY:
+	Updated 06/2017: added more miscellaneous symbols for text to latex
     Written 05/2017: extracted from individual programs and added entries
 """
 def language_conversion():
@@ -160,5 +161,12 @@ def language_conversion():
     #-- Miscellaneous Symbols
     language_conversion_list.append(("'","'",u'\u2019',"'"))
     language_conversion_list.append(("--",u"\u2013",u'\u2013',u"\u2013"))
+    language_conversion_list.append((" "," ",u"\u00a0", " "))
+    language_conversion_list.append(("\$","$",u"\u0024","$"))
+    language_conversion_list.append(("\#","#",u"\u0023","#"))
+    language_conversion_list.append(("\&","&",u"\u0026","&"))
+    language_conversion_list.append(("\{","{",u"\u007B","{"))
+    language_conversion_list.append(("\}","}",u"\u007D","}"))
+    language_conversion_list.append(("\_","_",u"\u005F","_"))
     #-- return the list of symbols to iterate
     return language_conversion_list
