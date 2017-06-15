@@ -22,6 +22,7 @@ NOTES:
 UPDATE HISTORY:
 	Updated 06/2017: added T2 for RIS entries with journal in T2 field
 		some RIS files use LP for the end page (not just EP)
+		separate initials of authors if listed as singular variable
 	Updated 05/2017: Convert special characters with language_conversion program
 	Written 05/2017
 """
@@ -109,15 +110,18 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 				#-- if the lastname was compound
 				if i is not None:
 					ALN,AGN = RIS_value[i:],RIS_value[:i].rstrip()
-					#-- add to authors list
-					current_authors.append('{0}, {1}'.format(ALN,AGN))
 				else:
 					#-- flip given name(s) and lastname
 					author_fields = RIS_value.split(' ')
 					ALN = author_fields[-1]
 					AGN = ' '.join(author_fields[:-1])
-					#-- add to authors list
-					current_authors.append('{0}, {1}'.format(ALN,AGN))
+				#-- split initials if as a single variable
+				if re.match('([A-Z])\.([A-Z])\.', AGN):
+					AGN = ' '.join(re.findall('([A-Z])\.([A-Z])\.', AGN).pop())
+				elif re.match('([A-Z])\.', AGN):
+					AGN, = re.findall('([A-Z])\.', AGN).pop()
+				#-- add to current authors list
+				current_authors.append('{0}, {1}'.format(ALN,AGN))
 		elif RIS_field in ('PY','Y1'):
 			#-- partition between publication date to YY/MM/DD
 			cal_date = [int(d) for d in re.findall('\d+',RIS_value)]

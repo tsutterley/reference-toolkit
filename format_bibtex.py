@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (05/2017)
+format_bibtex.py (06/2017)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -20,6 +20,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 06/2017: Separate initials of authors if listed as singular variable
 	Written 05/2017
 """
 from __future__ import print_function
@@ -99,7 +100,13 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 					author_fields = A.split(' ')
 					ALN = author_fields[-1]
 					AGN = ' '.join(author_fields[:-1])
-					current_authors.append('{0}, {1}'.format(ALN,AGN))
+				#-- split initials if as a single variable
+				if re.match('([A-Z])\.([A-Z])\.', AGN):
+					AGN = ' '.join(re.findall('([A-Z])\.([A-Z])\.', AGN).pop())
+				elif re.match('([A-Z])\.', AGN):
+					AGN, = re.findall('([A-Z])\.', AGN).pop()
+				#-- add to current authors list
+				current_authors.append('{0}, {1}'.format(ALN,AGN))
 			#-- merge authors list
 			bibtex_entry[key.lower()] = ' and '.join(current_authors)
 		elif (key.lower() == 'doi') and bool(R3.match(val)):

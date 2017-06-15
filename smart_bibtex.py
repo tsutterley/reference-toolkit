@@ -26,6 +26,7 @@ NOTES:
 
 UPDATE HISTORY:
 	Updated 06/2017: use language_conversion for journal name
+		separate initials of authors if listed as singular variable
 	Written 06/2017
 """
 from __future__ import print_function
@@ -86,6 +87,12 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 	for a in resp['message']['author']:
 		family = a['family'].title() if a['family'].isupper() else a['family']
 		given = a['given'].title() if a['given'].isupper() else a['given']
+		#-- split initials if as a single variable
+		if re.match('([A-Z])\.([A-Z])\.', given):
+			given = ' '.join(re.findall('([A-Z])\.([A-Z])\.', given).pop())
+		elif re.match('([A-Z])\.', given):
+			given, = re.findall('([A-Z])\.', given).pop()
+		#-- add to current authors list
 		current_authors.append(u'{0}, {1}'.format(family, given))
 
 	#-- get publication date (prefer date when in print)
