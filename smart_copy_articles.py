@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (05/2017)
+smart_copy_articles.py (06/2017)
 Copies a journal article and supplements from a website to a local directory
 	 using information from crossref.org
 
@@ -29,6 +29,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 06/2017: use language_conversion for journal name
 	Forked 05/2017 from copy_journal_articles.py to use info from crossref.org
 	Updated 05/2017: Convert special characters with language_conversion program
 	Written 05/2017
@@ -76,13 +77,14 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 	author = resp['message']['author'][0]['family'].decode('unicode-escape')
 	#-- check if author fields are initially uppercase: change to title
 	author = author.title() if author.isupper() else author
-	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
-	for LV, CV, UV, PV in language_conversion():
-		author = author.replace(UV, PV)
-	author = re.sub('\s|\-|\'','',author.encode('utf-8'))
-
 	#-- get journal name
 	journal, = resp['message']['container-title']
+    #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
+	for LV, CV, UV, PV in language_conversion():
+		author = author.replace(UV, PV)
+		journal = journal.replace(UV, LV)
+	#-- remove spaces, dashes and apostrophes
+	author = re.sub('\s|\-|\'','',author.encode('utf-8'))
 
 	#-- get publication date (prefer date when in print)
 	if 'published-print' in resp['message'].keys():
@@ -100,7 +102,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 	abbreviation_dir = os.path.join(filepath,'journals')
 	abbreviation_file = 'journal_abbreviations_webofscience-ts.txt'
 	#-- create regular expression pattern for extracting abbreviations
-	arg = journal.replace(' ','\s+')
+	arg = re.sub('[^a-zA-z0-9\s]',"",journal)
 	rx=re.compile('\n{0}[\s+]?\=[\s+]?(.*?)\n'.format(arg),flags=re.IGNORECASE)
 	#-- try to find journal article within filename from webofscience file
 	with open(os.path.join(abbreviation_dir,abbreviation_file),'r') as f:

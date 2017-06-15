@@ -21,6 +21,7 @@ NOTES:
 
 UPDATE HISTORY:
 	Updated 06/2017: added T2 for RIS entries with journal in T2 field
+		some RIS files use LP for the end page (not just EP)
 	Updated 05/2017: Convert special characters with language_conversion program
 	Written 05/2017
 """
@@ -42,7 +43,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		'CONF':'proceedings','RPRT':'techreport','THES':'phdthesis'}
 	#-- fields of interest for parsing an RIS file
 	RIS_fields = ['TY','AU','A1','TI','T1','T2','JA','JO','PY','Y1','VL','IS',
-		'SP','EP','PB','SN','UR','L3','M3','ER','DO','N1','KW','AB','KW']
+		'SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','N1','KW','AB','KW']
 	#-- regular expression for reading RIS files
 	RIS_regex = '({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
 	R1 = re.compile(RIS_regex, flags=re.IGNORECASE)
@@ -131,7 +132,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 			current_pages[0] = pages[0]
 			if (len(pages) > 1):
 				current_pages[1] = pages[1]
-		elif (RIS_field == 'EP') and bool(re.search('\d+',RIS_value)):
+		elif RIS_field in ('EP','LP') and bool(re.search('\d+',RIS_value)):
 			#-- add ending page to current_pages array
 			current_pages[1] = RIS_value
 		elif RIS_field in ('L3','DO','N1','M3') and bool(R2.search(RIS_value)):

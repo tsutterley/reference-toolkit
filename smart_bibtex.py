@@ -25,6 +25,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 06/2017: use language_conversion for journal name
 	Written 06/2017
 """
 from __future__ import print_function
@@ -140,6 +141,7 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 		firstauthor = firstauthor.replace(UV, PV)
 		current_entry['author'] = current_entry['author'].replace(UV, LV)
 		current_entry['title'] = current_entry['title'].replace(UV, LV)
+		current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
 
@@ -177,6 +179,8 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 		#-- do not put the month field in brackets
 		if (k == 'month'):
 			print('{0} = {1},'.format(k,v.rstrip()),file=fid)
+		elif (k == 'title'):
+			print('{0} = {{{{{1}}}}},'.format(k,v.rstrip()),file=fid)
 		else:
 			print('{0} = {{{1}}},'.format(k,v.rstrip()),file=fid)
 	print('}',file=fid)
