@@ -80,8 +80,8 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 
 	#-- bibtex entry type
 	current_key['entrytype'] = bibtex_entry_map[resp['message']['type']]
-        #-- add entered doi to current_entry dictionary
-        current_entry['doi'] = doi
+	#-- add entered doi to current_entry dictionary
+	current_entry['doi'] = doi
 
 	#-- check if author fields are initially uppercase: change to title
 	for a in resp['message']['author']:
@@ -90,8 +90,10 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 		#-- split initials if as a single variable
 		if re.match('([A-Z])\.([A-Z])\.', given):
 			given = ' '.join(re.findall('([A-Z])\.([A-Z])\.', given).pop())
+		elif re.match('([A-Za-z]+)\s([A-Z])\.', given):
+			given = ' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.', given).pop())
 		elif re.match('([A-Z])\.', given):
-			given, = re.findall('([A-Z])\.', given).pop()
+			given = ' '.join(re.findall('([A-Z])\.',given))
 		#-- add to current authors list
 		current_authors.append(u'{0}, {1}'.format(family, given))
 

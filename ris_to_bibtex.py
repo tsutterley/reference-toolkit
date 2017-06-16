@@ -117,9 +117,11 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 					AGN = ' '.join(author_fields[:-1])
 				#-- split initials if as a single variable
 				if re.match('([A-Z])\.([A-Z])\.', AGN):
-					AGN = ' '.join(re.findall('([A-Z])\.([A-Z])\.', AGN).pop())
+					AGN=' '.join(re.findall('([A-Z])\.([A-Z])\.',AGN).pop())
+				elif re.match('([A-Za-z]+)\s([A-Z])\.', AGN):
+					AGN=' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.',AGN).pop())
 				elif re.match('([A-Z])\.', AGN):
-					AGN, = re.findall('([A-Z])\.', AGN).pop()
+					AGN=' '.join(re.findall('([A-Z])\.',AGN))
 				#-- add to current authors list
 				current_authors.append('{0}, {1}'.format(ALN,AGN))
 		elif RIS_field in ('PY','Y1'):

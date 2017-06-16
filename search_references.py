@@ -88,7 +88,7 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False):
 					current_entry[key.lower()] = val
 				#-- use search terms to find journals
 				#-- Search bibtex author entries for AUTHOR
-				FLAG1 = R2.match(current_entry['author']) if AUTHOR else True
+				FLAG1 = R2.search(current_entry['author']) if AUTHOR else True
 				#-- Search bibtex journal entries for JOURNAL
 				FLAG2 = False if JOURNAL else True
 				if ('journal' in current_entry.keys() and JOURNAL):
