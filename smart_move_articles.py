@@ -111,12 +111,11 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
 	#-- create initial test case for output file (will add numbers if not)
 	args = (author, abbreviation.replace(' ','_'), vol, year, fileExtension)
 	local_file = os.path.join(directory,u'{0}_{1}-{2}_{3}{4}'.format(*args))
-	print(local_file)
-	# #-- open input file and copy contents to local file
-	# with open(fi, 'rb') as f_in, create_unique_filename(local_file) as f_out:
-	# 	shutil.copyfileobj(f_in, f_out)
-	# #-- remove the input file
-	# os.remove(fi) if CLEANUP else None
+	#-- open input file and copy contents to local file
+	with open(fi, 'rb') as f_in, create_unique_filename(local_file) as f_out:
+		shutil.copyfileobj(f_in, f_out)
+	#-- remove the input file
+	os.remove(fi) if CLEANUP else None
 
 #-- PURPOSE: open a unique filename adding a numerical instance if existing
 def create_unique_filename(filename):
