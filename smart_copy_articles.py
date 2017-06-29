@@ -74,17 +74,17 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 	resp = json.loads(urllib2.urlopen(req).read())
 
 	#-- get author and replace unicode characters in author with plain text
-	author = resp['message']['author'][0]['family'].decode('unicode-escape')
+	author = resp['message']['author'][0]['family']
 	#-- check if author fields are initially uppercase: change to title
 	author = author.title() if author.isupper() else author
 	#-- get journal name
 	journal, = resp['message']['container-title']
-    #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
+	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
-		author = author.replace(UV, PV)
-		journal = journal.replace(UV, LV)
+		author = author.replace(UV, CV)
+		journal = journal.replace(UV, PV)
 	#-- remove spaces, dashes and apostrophes
-	author = re.sub('\s|\-|\'','',author.encode('utf-8'))
+	author = re.sub('\s|\-|\'','',author)
 
 	#-- get publication date (prefer date when in print)
 	if 'published-print' in resp['message'].keys():
@@ -99,13 +99,12 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 
 	#-- directory with journal abbreviation files
 	#-- https://github.com/JabRef/abbrv.jabref.org/tree/master/journals
-	abbreviation_dir = os.path.join(filepath,'journals')
 	abbreviation_file = 'journal_abbreviations_webofscience-ts.txt'
 	#-- create regular expression pattern for extracting abbreviations
 	arg = re.sub('[^a-zA-z0-9\s]',"",journal)
 	rx=re.compile('\n{0}[\s+]?\=[\s+]?(.*?)\n'.format(arg),flags=re.IGNORECASE)
 	#-- try to find journal article within filename from webofscience file
-	with open(os.path.join(abbreviation_dir,abbreviation_file),'r') as f:
+	with open(os.path.join(filepath,abbreviation_file),'r') as f:
 		abbreviation_contents = f.read()
 
 	#-- if abbreviation not found: just use the whole journal name

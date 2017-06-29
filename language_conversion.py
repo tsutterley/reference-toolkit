@@ -166,12 +166,16 @@ def language_conversion():
     language_conversion_list.append(('{$\\psi$}', u'\u03C8', u'\u03C8','ps'))
     language_conversion_list.append(('{$\\omega$}', u'\u03C9', u'\u03C9','w'))
     #-- Miscellaneous Symbols
+    language_conversion_list.append(("`",u'\u2018',u'\u2018',"'"))
     language_conversion_list.append(("'","'",u'\u2019',"'"))
     language_conversion_list.append(("--",u"\u2013",u'\u2013',u"\u2013"))
+    language_conversion_list.append(("---",u"\u2014",u'\u2014',u"\u2014"))
     language_conversion_list.append((" "," ",u"\u00a0", " "))
     language_conversion_list.append(("\$","$",u"\u0024","$"))
     language_conversion_list.append(("\#","#",u"\u0023","#"))
     language_conversion_list.append(("\&","&",u"\u0026","&"))
     language_conversion_list.append(("\_","_",u"\u005F","_"))
+    language_conversion_list.append(("${\^\\circ}$",u"\u00B0",u"\u00B0","o"))
+    language_conversion_list.append(("$\\times$",u"\u2715",u"\u2715","x"))
     #-- return the list of symbols to iterate
     return language_conversion_list

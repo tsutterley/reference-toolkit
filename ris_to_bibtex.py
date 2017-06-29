@@ -6,6 +6,7 @@ Converts RIS bibliography files into bibtex files with Universal citekeys
 
 COMMAND LINE OPTIONS:
 	-O, --output: Output to bibtex files (default to terminal)
+	-C, --cleanup: Remove the input file after formatting
 	-V, --verbose: Verbose output of input and output files
 
 PROGRAM DEPENDENCIES:
@@ -23,6 +24,7 @@ UPDATE HISTORY:
 	Updated 06/2017: added T2 for RIS entries with journal in T2 field
 		some RIS files use LP for the end page (not just EP)
 		separate initials of authors if listed as singular variable
+		added option --cleanup to remove the input RIS file after conversion
 	Updated 05/2017: Convert special characters with language_conversion program
 	Written 05/2017
 """
@@ -212,15 +214,17 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 def usage():
 	print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
 	print(' -O, --output\tOutput to bibtex files (default to terminal)')
+	print(' -C, --cleanup\t\tRemove the input file after conversion')
 	print(' -V, --verbose\tVerbose output of input and output files\n')
 
 #-- main program that calls ris_to_bibtex()
 def main():
 	#-- Read the system arguments listed after the program
-	long_options = ['help','output','verbose']
-	optlist,arglist=getopt.getopt(sys.argv[1:],'hOV',long_options)
+	long_options = ['help','output','cleanup','verbose']
+	optlist,arglist=getopt.getopt(sys.argv[1:],'hOCV',long_options)
 	#-- command line arguments
 	OUTPUT = False
+	CLEANUP = False
 	VERBOSE = False
 	#-- for each input argument
 	for opt, arg in optlist:
@@ -231,6 +235,8 @@ def main():
 			OUTPUT = True
 		elif opt in ('-V','--verbose'):
 			VERBOSE = True
+		elif opt in ('-C','--cleanup'):
+			CLEANUP = True
 
 	#-- for each file entered
 	for FILE in arglist:
@@ -238,6 +244,8 @@ def main():
 		print(os.path.basename(FILE)) if VERBOSE else None
 		with open(os.path.expanduser(FILE),'r') as f:
 			ris_to_bibtex(f.read().splitlines(), OUTPUT=OUTPUT, VERBOSE=VERBOSE)
+		#-- remove the input file
+		os.remove(FILE) if CLEANUP else None
 
 #-- run main program
 if __name__ == '__main__':

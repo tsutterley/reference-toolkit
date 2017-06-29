@@ -15,11 +15,13 @@ COMMAND LINE OPTIONS:
 	-K X, --keyword=X: keywords to search
 	-J X, --journal=X: publication journals to search
 	-O, --open: open publication directory with found matches
+	-W, --webpage: open publication webpage with found matches
 
 PROGRAM DEPENDENCIES:
 	language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+	Updated 06/2017: added webbrowser to open the webpage of found articles
 	Written 06/2017
 """
 from __future__ import print_function
@@ -30,6 +32,7 @@ import os
 import inspect
 import getopt
 import subprocess
+import webbrowser
 from language_conversion import language_conversion
 
 #-- current file path for the program
@@ -38,7 +41,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- Reads bibtex files for each article stored in the working directory for
 #-- keywords, authors, journal, etc
-def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False):
+def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
+	WEBPAGE=False):
 	#-- bibtex fields to be printed in the output file
 	bibtex_field_types = ['address','affiliation','annote','author',
 		'booktitle','chapter','crossref','doi','edition','editor',
@@ -103,6 +107,13 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False):
 				if bool(FLAG1) & bool(FLAG2) & (bool(FLAG3) | bool(FLAG4)):
 					print(bibtex_entry)
 					file_opener(os.path.join(filepath,Y,A,fi)) if OPEN else None
+					#-- URL to open if WEBPAGE (from url or using doi)
+					if 'url' in current_entry.keys():
+						URL = current_entry['url']
+					elif 'doi' in current_entry.keys():
+						URL = 'https://doi.org/{0}'.format(current_entry['doi'])
+					#-- Open URL in a new tab, if browser window is already open
+					webbrowser.open_new_tab(URL) if (WEBPAGE and URL) else None
 
 #-- PURPOSE: platform independent file opener
 def file_opener(filename):
@@ -121,12 +132,14 @@ def usage():
 	print(' -J X, --journal=X\tPublication journals to search')
 	print(' -Y X, --year=X\t\tYears of publication to search')
 	print(' -K X, --keyword=X\tKeywords to search')
-	print(' -O, --open\t\tOpen publication directory with found matches\n')
+	print(' -O, --open\t\tOpen publication directory with found matches')
+	print(' -W, --webpage\t\tOpen publication webpage with found matches\n')
 
 #-- main program that calls search_references()
 def main():
-	long_options=['help','author=','first','journal=','year=','keyword=','open']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'hA:FJ:Y:K:O',long_options)
+	long_options = ['help','author=','first','journal=','year=','keyword=',
+		'open','webpage']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'hA:FJ:Y:K:OW',long_options)
 	#-- default: none
 	AUTHOR = None
 	FIRST = False
@@ -134,6 +147,7 @@ def main():
 	YEAR = None
 	KEYWORDS = None
 	OPEN = False
+	WEBPAGE = False
 	#-- for each input argument
 	for opt, arg in optlist:
 		if opt in ('-h','--help'):
@@ -151,9 +165,12 @@ def main():
 			KEYWORDS = arg.split(',')
 		elif opt in ('-O','--open'):
 			OPEN = True
+		elif opt in ('-W','--webpage'):
+			WEBPAGE = True
 
 	#-- search references for requested fields
-	search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=FIRST, OPEN=OPEN)
+	search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=FIRST, OPEN=OPEN,
+		WEBPAGE=WEBPAGE)
 
 #-- run main program
 if __name__ == '__main__':

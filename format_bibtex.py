@@ -5,6 +5,7 @@ Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
 	-O, --output: Output to new bibtex file
+	-C, --cleanup: Remove the input file after formatting
 	-V, --verbose: Verbose output of input files and entries
 
 PROGRAM DEPENDENCIES:
@@ -22,6 +23,7 @@ NOTES:
 UPDATE HISTORY:
 	Updated 06/2017: Separate initials of authors if listed as singular variable
 		format author names even if in family name, given name format
+		added option --cleanup to remove the input RIS file after formatting
 	Written 05/2017
 """
 from __future__ import print_function
@@ -195,14 +197,17 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 def usage():
 	print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
 	print(' -O, --output\tOutput to new bibtex file')
+	print(' -C, --cleanup\t\tRemove the input file after formatting')
+	print(' -V, --verbose\tVerbose output of input and output files\n')
 
 #-- main program that calls format_bibtex()
 def main():
 	#-- Read the system arguments listed after the program
-	long_options = ['help','output','verbose']
-	optlist,arglist=getopt.getopt(sys.argv[1:],'hOV',long_options)
+	long_options = ['help','output','cleanup','verbose']
+	optlist,arglist=getopt.getopt(sys.argv[1:],'hOCV',long_options)
 	#-- command line arguments
 	OUTPUT = False
+	CLEANUP = False
 	VERBOSE = False
 	#-- for each input argument
 	for opt, arg in optlist:
@@ -213,6 +218,8 @@ def main():
 			OUTPUT = True
 		elif opt in ('-V','--verbose'):
 			VERBOSE = True
+		elif opt in ('-C','--cleanup'):
+			CLEANUP = True
 
 	#-- for each file entered
 	for FILE in arglist:
@@ -220,6 +227,8 @@ def main():
 		print(os.path.basename(FILE)) if VERBOSE else None
 		with open(os.path.expanduser(FILE),'r') as f:
 			format_bibtex(f.read(), OUTPUT=OUTPUT, VERBOSE=VERBOSE)
+		#-- remove the input file
+		os.remove(FILE) if CLEANUP else None
 
 #-- run main program
 if __name__ == '__main__':
