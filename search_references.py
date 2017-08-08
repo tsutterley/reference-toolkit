@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (06/2017)
+search_references.py (07/2017)
 Reads bibtex files for each article in a given set of years to search for
 	keywords, authors, journal, etc using regular expressions
 
@@ -21,6 +21,7 @@ PROGRAM DEPENDENCIES:
 	language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+	Updated 07/2017: print number of matching articles in search query
 	Updated 06/2017: added webbrowser to open the webpage of found articles
 	Written 06/2017
 """
@@ -67,6 +68,8 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 	regex_years = '|'.join(YEAR) if YEAR else '\d+'
 	years = [sd for sd in os.listdir(filepath) if re.match(regex_years,sd) and
 		os.path.isdir(os.path.join(filepath,sd))]
+	match_count = 0
+	query_count = 0
 	for Y in sorted(years):
 		#-- find author directories in year
 		authors = [sd for sd in os.listdir(os.path.join(filepath,Y)) if
@@ -114,6 +117,13 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 						URL = 'https://doi.org/{0}'.format(current_entry['doi'])
 					#-- Open URL in a new tab, if browser window is already open
 					webbrowser.open_new_tab(URL) if (WEBPAGE and URL) else None
+					#-- add to total match count
+					match_count += 1
+				#-- add to total query count
+				query_count += 1
+	#-- print the number of matching and number of queried references
+	args = (match_count, query_count)
+	print('Matching references = {0:d} out of {1:d} queried'.format(*args))
 
 #-- PURPOSE: platform independent file opener
 def file_opener(filename):

@@ -158,6 +158,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	#-- create entry for authors and decode from utf-8
 	current_entry['author'] = ' and '.join(current_authors).decode('utf-8')
 	current_entry['title'] = current_entry['title'].decode('utf-8')
+	current_entry['journal'] = current_entry['journal'].decode('utf-8')
 	#-- firstauthor: replace unicode characters with plain text
 	#-- bibtex entry for authors: replace unicode characters with latex symbols
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
@@ -165,6 +166,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		firstauthor = firstauthor.replace(UV, PV)
 		current_entry['author'] = current_entry['author'].replace(UV, LV)
 		current_entry['title'] = current_entry['title'].replace(UV, LV)
+		current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
 

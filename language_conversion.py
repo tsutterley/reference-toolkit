@@ -111,6 +111,9 @@ def language_conversion():
     #-- Latin uppercase and lowercase O with stroke
     language_conversion_list.append(('{\\O}', u'\u00D8', u'\u00D8','O'))
     language_conversion_list.append(('{\\o}', u'\u00F8', u'\u00F8','o'))
+    #-- Latin uppercase and lowercase O with tilde
+    language_conversion_list.append(('{\~O}', u'O\u0303', u'\u00D5','O'))
+    language_conversion_list.append(('{\~o}', u'o\u0303', u'\u00F5','o'))
     #-- Latin lowercase sharp S (eszett)
     language_conversion_list.append(('{\\ss}', u'\u00DF', u'\u00DF','ss'))
     #-- Latin uppercase and lowercase A with ring (o)
