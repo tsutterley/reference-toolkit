@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-copy_journal_articles.py (05/2017)
+copy_journal_articles.py (09/2017)
 Copies a journal article and supplements from a website to a local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
@@ -33,6 +33,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 05/2017: Convert special characters with language_conversion program
 	Written 05/2017
 """
@@ -55,7 +56,7 @@ filepath = os.path.dirname(os.path.abspath(filename))
 def check_connection(remote_file):
 	#-- attempt to connect to remote file
 	try:
-		urllib2.urlopen(remote_file, timeout=1)
+		urllib2.urlopen(remote_file, timeout=20)
 	except urllib2.HTTPError:
 		raise RuntimeError('Check URL: {0}'.format(remote_file))
 	except urllib2.URLError:
@@ -111,7 +112,7 @@ def copy_journal_articles(remote_file,author,journal,year,volume,SUPPLEMENT):
 	#-- open url and copy contents to local file using chunked transfer encoding
 	#-- transfer should work properly with ascii and binary data formats
 	request=urllib2.Request(remote_file, headers={'User-Agent':"Magic Browser"})
-	f_in = urllib2.urlopen(request)
+	f_in = urllib2.urlopen(request, timeout=20)
 	with create_unique_filename(local_file) as f_out:
 		shutil.copyfileobj(f_in, f_out, CHUNK)
 	f_in.close()

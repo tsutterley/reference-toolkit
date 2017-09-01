@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (06/2017)
+smart_copy_articles.py (09/2017)
 Copies a journal article and supplements from a website to a local directory
 	 using information from crossref.org
 
@@ -29,6 +29,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
 	Forked 05/2017 from copy_journal_articles.py to use info from crossref.org
 	Updated 05/2017: Convert special characters with language_conversion program
@@ -54,7 +55,7 @@ filepath = os.path.dirname(os.path.abspath(filename))
 def check_connection(remote_file):
 	#-- attempt to connect to remote file
 	try:
-		urllib2.urlopen(remote_file, timeout=1)
+		urllib2.urlopen(remote_file, timeout=20)
 	except urllib2.HTTPError:
 		raise RuntimeError('Check URL: {0}'.format(remote_file))
 	except urllib2.URLError:
@@ -71,7 +72,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 
 	#-- open connection with crossref.org for DOI
 	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req).read())
+	resp = json.loads(urllib2.urlopen(req, timeout=20).read())
 
 	#-- get author and replace unicode characters in author with plain text
 	author = resp['message']['author'][0]['family']
@@ -131,7 +132,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 	#-- open url and copy contents to local file using chunked transfer encoding
 	#-- transfer should work properly with ascii and binary data formats
 	request=urllib2.Request(remote_file, headers={'User-Agent':"Magic Browser"})
-	f_in = urllib2.urlopen(request)
+	f_in = urllib2.urlopen(request, timeout=20)
 	with create_unique_filename(local_file) as f_out:
 		shutil.copyfileobj(f_in, f_out, CHUNK)
 	f_in.close()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (06/2017)
+smart_bibtex.py (09/2017)
 Creates a entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -25,6 +25,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
 		separate initials of authors if listed as singular variable
 	Written 06/2017
@@ -45,7 +46,7 @@ def check_connection(doi):
 	#-- attempt to connect to remote url
 	remote_url = 'https://api.crossref.org/works/{0}'.format(doi)
 	try:
-		urllib2.urlopen(remote_url,timeout=1)
+		urllib2.urlopen(remote_url,timeout=20)
 	except urllib2.HTTPError:
 		raise RuntimeError('Check URL: {0}'.format(remote_url))
 	except urllib2.URLError:
@@ -57,7 +58,7 @@ def check_connection(doi):
 def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 	#-- open connection with crossref.org for DOI
 	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req).read())
+	resp = json.loads(urllib2.urlopen(req,timeout=20).read())
 
 	#-- sort bibtex fields in output
 	bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,

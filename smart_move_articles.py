@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_move_articles.py (06/2017)
+smart_move_articles.py (09/2017)
 Moves a journal article and supplements to the references local directory
 	using information from crossref.org
 
@@ -29,6 +29,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
 	Forked 05/2017 from move_journal_articles.py to use info from crossref.org
 	Written 05/2017
@@ -56,7 +57,7 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
 
 	#-- open connection with crossref.org for DOI
 	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req).read())
+	resp = json.loads(urllib2.urlopen(req, timeout=20).read())
 
 	#-- get author and replace unicode characters in author with plain text
 	author = resp['message']['author'][0]['family']

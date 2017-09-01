@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (05/2017)
+smart_citekeys.py (09/2017)
 Generates Papers2-like cite keys for BibTeX using information from crossref.org
 
 Enter DOI's of journals to generate "universal" keys
@@ -18,6 +18,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Forked 05/2017 from gen_citekeys.py to use information from crossref.org
 	Updated 05/2017: removing whitespace from authors.
 		Converting special characters with language_conversion program
@@ -41,7 +42,7 @@ def check_connection(doi):
 	#-- attempt to connect to remote url
 	remote_url = 'https://api.crossref.org/works/{0}'.format(doi)
 	try:
-		urllib2.urlopen(remote_url,timeout=1)
+		urllib2.urlopen(remote_url,timeout=20)
 	except urllib2.HTTPError:
 		raise RuntimeError('Check URL: {0}'.format(remote_url))
 	except urllib2.URLError:
@@ -53,7 +54,7 @@ def check_connection(doi):
 def smart_citekey(doi):
 	#-- open connection with crossref.org for DOI
 	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req).read())
+	resp = json.loads(urllib2.urlopen(req,timeout=20).read())
 
 	#-- get author and replace unicode characters in author with plain text
 	author = resp['message']['author'][0]['family'].decode('unicode-escape')
