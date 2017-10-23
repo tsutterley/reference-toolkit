@@ -1,0 +1,17 @@
+### REFERENCERC FORMAT
+
+# This is a sample configuration file for the python reference-toolkit program
+
+# root directory for storing reference articles and bibtex files
+datapath : ~/references.dir
+
+# format used for saving articles using string formatter https://pyformat.info/
+# default: `AuthorLastName_JournalAbbreviation_Volume-Year.pdf`
+# 0) Author Last Name
+# 1) Journal Name
+# 2) Journal Abbreviation
+# 3) Publication Volume
+# 4) Publication Number
+# 5) Publication Year
+# 6) File Extension (will include period)
+dataformat : {0}_{2}_{3}-{5}{6}

@@ -10,6 +10,7 @@ COMMAND LINE OPTIONS:
 
 PROGRAM DEPENDENCIES:
 	gen_citekeys.py: Generates Papers2-like cite keys for BibTeX
+	read_referencerc.py: Sets default file path and file format for output files
 	language_conversion.py: Outputs map for converting symbols between languages
 
 NOTES:
@@ -22,6 +23,7 @@ NOTES:
 
 UPDATE HISTORY:
 	Updated 10/2017: if --output place file in reference directory
+		use data path and data file format from referencerc file
 	Updated 06/2017: Separate initials of authors if listed as singular variable
 		format author names even if in family name, given name format
 		added option --cleanup to remove the input RIS file after formatting
@@ -35,6 +37,7 @@ import re
 import getopt
 import inspect
 from gen_citekeys import gen_citekey
+from read_referencerc import read_referencerc
 from language_conversion import language_conversion
 
 #-- current file path for the program
@@ -43,6 +46,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- PURPOSE: formats an input bibtex file
 def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
+	#-- get reference filepath and reference format from referencerc file
+	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- valid bibtex entry types
 	bibtex_entry_types = ['article','book','booklet','conference','inbook',
 		'incollection','inproceedings','manual','mastersthesis','phdthesis',
@@ -185,7 +190,7 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',univ_key).pop()
 		bibtex_file = '{0}-{1}.bib'.format(authkey,citekey)
 		#-- output directory
-		bibtex_dir = os.path.join(filepath,year_directory,author_directory)
+		bibtex_dir = os.path.join(datapath,year_directory,author_directory)
 		os.makedirs(bibtex_dir) if not os.path.exists(bibtex_dir) else None
 		#-- create file object for output file
 		fid = open(os.path.join(bibtex_dir,bibtex_file),'w')

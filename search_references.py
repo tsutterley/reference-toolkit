@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (07/2017)
+search_references.py (10/2017)
 Reads bibtex files for each article in a given set of years to search for
 	keywords, authors, journal, etc using regular expressions
 
@@ -18,9 +18,11 @@ COMMAND LINE OPTIONS:
 	-W, --webpage: open publication webpage with found matches
 
 PROGRAM DEPENDENCIES:
+	read_referencerc.py: Sets default file path and file format for output files
 	language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 07/2017: print number of matching articles in search query
 	Updated 06/2017: added webbrowser to open the webpage of found articles
 	Written 06/2017
@@ -34,6 +36,7 @@ import inspect
 import getopt
 import subprocess
 import webbrowser
+from read_referencerc import read_referencerc
 from language_conversion import language_conversion
 
 #-- current file path for the program
@@ -44,6 +47,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 #-- keywords, authors, journal, etc
 def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 	WEBPAGE=False):
+	#-- get reference filepath and reference format from referencerc file
+	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- bibtex fields to be printed in the output file
 	bibtex_field_types = ['address','affiliation','annote','author',
 		'booktitle','chapter','crossref','doi','edition','editor',
@@ -66,21 +71,21 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 
 	#-- find directories of years
 	regex_years = '|'.join(YEAR) if YEAR else '\d+'
-	years = [sd for sd in os.listdir(filepath) if re.match(regex_years,sd) and
-		os.path.isdir(os.path.join(filepath,sd))]
+	years = [sd for sd in os.listdir(datapath) if re.match(regex_years,sd) and
+		os.path.isdir(os.path.join(datapath,sd))]
 	match_count = 0
 	query_count = 0
 	for Y in sorted(years):
 		#-- find author directories in year
-		authors = [sd for sd in os.listdir(os.path.join(filepath,Y)) if
-			os.path.isdir(os.path.join(filepath,Y,sd))]
+		authors = [sd for sd in os.listdir(os.path.join(datapath,Y)) if
+			os.path.isdir(os.path.join(datapath,Y,sd))]
 		for A in sorted(authors):
 			#-- find bibtex files
-			bibtex_files = [fi for fi in os.listdir(os.path.join(filepath,Y,A))
+			bibtex_files = [fi for fi in os.listdir(os.path.join(datapath,Y,A))
 				if re.match('(.*?)-(.*?).bib$',fi)]
 			#-- read each bibtex file
 			for fi in bibtex_files:
-				with open(os.path.join(filepath,Y,A,fi), 'r') as f:
+				with open(os.path.join(datapath,Y,A,fi), 'r') as f:
 					bibtex_entry = f.read()
 				#-- extract bibtex fields
 				bibtex_field_entries = R1.findall(bibtex_entry)
@@ -109,7 +114,7 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 				#-- print the complete bibtex entry if search was found
 				if bool(FLAG1) & bool(FLAG2) & (bool(FLAG3) | bool(FLAG4)):
 					print(bibtex_entry)
-					file_opener(os.path.join(filepath,Y,A,fi)) if OPEN else None
+					file_opener(os.path.join(datapath,Y,A,fi)) if OPEN else None
 					#-- URL to open if WEBPAGE (from url or using doi)
 					if 'url' in current_entry.keys():
 						URL = current_entry['url']

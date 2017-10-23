@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_move_articles.py (09/2017)
+smart_move_articles.py (10/2017)
 Moves a journal article and supplements to the references local directory
 	using information from crossref.org
 
@@ -20,6 +20,7 @@ COMMAND LINE OPTIONS:
 	-C, --cleanup: Remove the input file after moving
 
 PROGRAM DEPENDENCIES:
+	read_referencerc.py: Sets default file path and file format for output files
 	language_conversion.py: Outputs map for converting symbols between languages
 
 NOTES:
@@ -29,6 +30,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
 	Forked 05/2017 from move_journal_articles.py to use info from crossref.org
@@ -44,6 +46,7 @@ import shutil
 import inspect
 import getopt
 import urllib2
+from read_referencerc import read_referencerc
 from language_conversion import language_conversion
 
 #-- current file path for the program
@@ -52,6 +55,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- PURPOSE: create directories and move a reference file after formatting
 def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
+	#-- get reference filepath and reference format from referencerc file
+	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- get extension from file (assume pdf if extension cannot be extracted)
 	fileExtension=os.path.splitext(fi)[1] if os.path.splitext(fi)[1] else '.pdf'
 
@@ -80,10 +85,11 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
 	#-- extract year from date parts and convert to string
 	year = '{0:4d}'.format(date_parts[0])
 
-	#-- get publication volume
+	#-- get publication volume and number
 	vol=resp['message']['volume'] if 'volume' in resp['message'].keys() else ''
+	num=resp['message']['issue'] if 'issue' in resp['message'].keys() else ''
 
-	#-- directory with journal abbreviation files
+	#-- file listing journal abbreviations modified from
 	#-- https://github.com/JabRef/abbrv.jabref.org/tree/master/journals
 	abbreviation_file = 'journal_abbreviations_webofscience-ts.txt'
 	#-- create regular expression pattern for extracting abbreviations
@@ -103,15 +109,25 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
 
 	#-- directory path for local file
 	if SUPPLEMENT:
-		directory = os.path.join(filepath,year,author,'Supplemental')
+		directory = os.path.join(datapath,year,author,'Supplemental')
 	else:
-		directory = os.path.join(filepath,year,author)
+		directory = os.path.join(datapath,year,author)
 	#-- check if output directory currently exist and recursively create if not
 	os.makedirs(directory) if not os.path.exists(directory) else None
 
-	#-- create initial test case for output file (will add numbers if not)
-	args = (author, abbreviation.replace(' ','_'), vol, year, fileExtension)
-	local_file = os.path.join(directory,u'{0}_{1}-{2}_{3}{4}'.format(*args))
+	#-- format used for saving articles using string formatter
+	#-- 0) Author Last Name
+	#-- 1) Journal Name
+	#-- 2) Journal Abbreviation
+	#-- 3) Publication Volume
+	#-- 4) Publication Number
+	#-- 5) Publication Year
+	#-- 6) File Extension (will include period)
+	#-- initial test case for output file (will add numbers if not unique in fs)
+	args = (author, journal.replace(' ','_'), abbreviation.replace(' ','_'),
+		vol, num, year, fileExtension)
+	local_file = os.path.join(directory, dataformat.format(*args))
+
 	#-- open input file and copy contents to local file
 	with open(fi, 'rb') as f_in, create_unique_filename(local_file) as f_out:
 		shutil.copyfileobj(f_in, f_out)
@@ -131,7 +147,7 @@ def create_unique_filename(filename):
 		except OSError:
 			pass
 		else:
-			print(filename)
+			print(filename.replace(os.path.expanduser('~'),'~'))
 			return os.fdopen(fd, 'wb+')
 		#-- new filename adds counter the between fileBasename and fileExtension
 		filename = u'{0}-{1:d}{2}'.format(fileBasename, counter, fileExtension)
