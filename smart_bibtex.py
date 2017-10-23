@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (09/2017)
+smart_bibtex.py (10/2017)
 Creates a entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -25,6 +25,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 10/2017: if --output place file in reference directory
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
 		separate initials of authors if listed as singular variable
@@ -37,9 +38,14 @@ import os
 import re
 import json
 import getopt
+import inspect
 import urllib2
 from gen_citekeys import gen_citekey
 from language_conversion import language_conversion
+
+#-- current file path for the program
+filename = inspect.getframeinfo(inspect.currentframe()).filename
+filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- PURPOSE: check internet connection and URL
 def check_connection(doi):
@@ -142,18 +148,25 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 
 	#-- extract surname of first author
 	firstauthor = current_authors[0].split(',')[0]
+	author_directory = current_authors[0].split(',')[0]
 	#-- create entry for authors
 	current_entry['author'] = ' and '.join(current_authors)
 	#-- firstauthor: replace unicode characters with plain text
+	#-- author_directory: replace unicode characters with combined unicode
 	#-- bibtex entry for authors: replace unicode characters with latex symbols
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
 		firstauthor = firstauthor.replace(UV, PV)
+		author_directory = author_directory.replace(UV, CV)
 		current_entry['author'] = current_entry['author'].replace(UV, LV)
 		current_entry['title'] = current_entry['title'].replace(UV, LV)
 		current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
+	#-- remove spaces, dashes and apostrophes from author_directory
+	author_directory = re.sub('\s','_',author_directory)
+	author_directory = re.sub('\-|\'','',author_directory)
+	year_directory, = re.findall('\d+',current_entry['year'])
 
 	#-- create list of article keywords if present in bibliography file
 	if current_keywords:
@@ -170,12 +183,19 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 	else:
 		current_entry['pages'] = '{0}--{1}'.format(*current_pages)
 
-	#-- parse universal citekey
-	authkey,citekey=re.findall('(\D+)\:(\d+\D+)',current_key['citekey']).pop()
 	#-- if printing to file: output bibtex file for author and year
-	fid = open('{0}-{1}.bib'.format(authkey,citekey),'w') if OUTPUT else sys.stdout
-	if VERBOSE and OUTPUT:
-		print('  --> {0}-{1}.bib'.format(authkey,citekey))
+	if OUTPUT:
+		#-- parse universal citekey to generate output filename
+		authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',current_key['citekey']).pop()
+		bibtex_file = '{0}-{1}.bib'.format(authkey,citekey)
+		#-- output directory
+		bibtex_dir = os.path.join(filepath,year_directory,author_directory)
+		os.makedirs(bibtex_dir) if not os.path.exists(bibtex_dir) else None
+		#-- create file object for output file
+		fid = open(os.path.join(bibtex_dir,bibtex_file),'w')
+		print('  --> {0}'.format(bibtex_file)) if VERBOSE else None
+	else:
+		fid = sys.stdout
 
 	#-- print the bibtex citation
 	print('@{0}{{{1},'.format(current_key['entrytype'],current_key['citekey']),file=fid)

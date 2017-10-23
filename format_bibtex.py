@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (06/2017)
+format_bibtex.py (10/2017)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -21,6 +21,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 10/2017: if --output place file in reference directory
 	Updated 06/2017: Separate initials of authors if listed as singular variable
 		format author names even if in family name, given name format
 		added option --cleanup to remove the input RIS file after formatting
@@ -32,8 +33,13 @@ import sys
 import os
 import re
 import getopt
+import inspect
 from gen_citekeys import gen_citekey
 from language_conversion import language_conversion
+
+#-- current file path for the program
+filename = inspect.getframeinfo(inspect.currentframe()).filename
+filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- PURPOSE: formats an input bibtex file
 def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
@@ -143,18 +149,25 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		bibtex_entry['author'] = bibtex_entry['author'].title()
 	#-- extract surname of first author
 	firstauthor = bibtex_entry['author'].split(',')[0].decode('utf-8')
+	author_directory = bibtex_entry['author'].split(',')[0].decode('utf-8')
 	bibtex_entry['author'] = bibtex_entry['author'].decode('utf-8')
 	bibtex_entry['title'] = bibtex_entry['title'].decode('utf-8')
 	#-- firstauthor: replace unicode characters with plain text
+	#-- author_directory: replace unicode characters with combined unicode
 	#-- bibtex entry for authors: replace unicode characters with latex symbols
 	#-- bibtex entry for titles: replace unicode characters with latex symbols
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
 		firstauthor = firstauthor.replace(UV, PV)
+		author_directory = author_directory.replace(UV, CV)
 		bibtex_entry['author'] = bibtex_entry['author'].replace(UV, LV)
 		bibtex_entry['title'] = bibtex_entry['title'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
+	#-- remove spaces, dashes and apostrophes from author_directory
+	author_directory = re.sub('\s','_',author_directory)
+	author_directory = re.sub('\-|\'','',author_directory)
+	year_directory, = re.findall('\d+',bibtex_entry['year'])
 
 	#-- create list of article keywords if present in bibliography file
 	if bibtex_keywords:
@@ -166,12 +179,19 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	#-- calculate the universal citekey
 	univ_key = gen_citekey(firstauthor,bibtex_entry['year'],doi,title)
 
-	#-- parse universal citekey
-	authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',univ_key).pop()
 	#-- if printing to file: output bibtex file for author and year
-	fid = open('{0}-{1}.bib'.format(authkey,citekey),'w') if OUTPUT else sys.stdout
-	if VERBOSE and OUTPUT:
-		print('  --> {0}-{1}.bib'.format(authkey,citekey))
+	if OUTPUT:
+		#-- parse universal citekey to generate output filename
+		authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',univ_key).pop()
+		bibtex_file = '{0}-{1}.bib'.format(authkey,citekey)
+		#-- output directory
+		bibtex_dir = os.path.join(filepath,year_directory,author_directory)
+		os.makedirs(bibtex_dir) if not os.path.exists(bibtex_dir) else None
+		#-- create file object for output file
+		fid = open(os.path.join(bibtex_dir,bibtex_file),'w')
+		print('  --> {0}'.format(bibtex_file)) if VERBOSE else None
+	else:
+		fid = sys.stdout
 
 	#-- print the bibtex citation
 	print('@{0}{{{1},'.format(bibtex_key['entrytype'],univ_key),file=fid)
