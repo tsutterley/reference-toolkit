@@ -6,7 +6,7 @@
 datapath : ~/references.dir
 
 # format used for saving articles using string formatter https://pyformat.info/
-# default: `AuthorLastName_JournalAbbreviation_Volume-Year.pdf`
+# default: `AuthorLastName_JournalAbbreviation-Volume_Year.pdf`
 # 0) Author Last Name
 # 1) Journal Name
 # 2) Journal Abbreviation
@@ -14,4 +14,4 @@ datapath : ~/references.dir
 # 4) Publication Number
 # 5) Publication Year
 # 6) File Extension (will include period)
-dataformat : {0}_{2}_{3}-{5}{6}
+dataformat : {0}_{2}-{3}_{5}{6}

@@ -61,6 +61,19 @@ search_references.py: Searches all managed BibTeX files for keywords, authors an
 python search_references.py -A Rignot -F -Y 2008 -J "Nature Geoscience"
 ```
 
+language_conversion.py: Mapping function that converts to/from LaTeX and python unicode for special characters  
+```python
+#-- 1st column: latex format for output bibtex files
+#-- 2nd column: character with combining modifier unicode
+#-- 3rd column: precomposed character and modifier unicode
+#-- 4th column: plain text "equivalent" (scrubbed of symbols for citekeys)
+for LV, CV, UV, PV in language_conversion():
+	author = author.replace(UV, CV)
+```
+
+#### Journal Abbreviations
+[List of Journal Name and Abbreviation modified from Web of Science](https://github.com/JabRef/abbrv.jabref.org/tree/master/journals)  
+
 #### Download
 The program homepage is:   
 https://github.com/tsutterley/reference-toolkit   
