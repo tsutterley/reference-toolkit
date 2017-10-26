@@ -10,6 +10,7 @@ def read_referencerc(referencerc_file):
 	parameters = {}
 	#-- Opening parameter file and assigning file ID (f)
 	with open(os.path.expanduser(referencerc_file), 'r') as f:
+		#-- read entire line and keep all uncommented lines
 		fin = [i for i in f.read().splitlines() if i and re.match('^(?!#)',i)]
 	#-- for each line in the file will extract the parameter (name and value)
 	for fileline in fin:

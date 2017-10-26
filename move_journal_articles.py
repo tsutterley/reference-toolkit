@@ -166,6 +166,8 @@ def main():
 			YEAR = arg.split(',')
 		elif opt in ('-V','--volume'):
 			VOLUME = arg.split(',')
+		elif opt in ('-N','--number'):
+			NUMBER = arg.split(',')
 		elif opt in ('-S','--supplement'):
 			SUPPLEMENT = True
 		elif opt in ('-C','--cleanup'):
@@ -179,7 +181,7 @@ def main():
 		NUMBER = ['']*len(arglist)
 
 	#-- run for each entered file
-	for FILE,A,J,Y,V,N in zip(arglist,AUTHOR,JOURNAL,YEAR,NUMBER,VOLUME):
+	for FILE,A,J,Y,V,N in zip(arglist,AUTHOR,JOURNAL,YEAR,VOLUME,NUMBER):
 		move_journal_articles(FILE,A,J,Y,V,N,SUPPLEMENT,CLEANUP)
 
 #-- run main program

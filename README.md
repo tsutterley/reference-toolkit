@@ -61,6 +61,11 @@ search_references.py: Searches all managed BibTeX files for keywords, authors an
 python search_references.py -A Rignot -F -Y 2008 -J "Nature Geoscience"
 ```
 
+open_doi.py: Opens the webpages associated with a Digital Object Identifier (DOI)  
+```bash
+python open_doi.py 10.1038/ngeo102
+```
+
 language_conversion.py: Mapping function that converts to/from LaTeX and python unicode for special characters  
 ```python
 #-- 1st column: latex format for output bibtex files

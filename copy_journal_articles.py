@@ -162,7 +162,8 @@ def usage():
 
 #-- main program that calls copy_journal_articles()
 def main():
-	lopt=['help','author=','journal=','year=','volume=','number=','supplement']
+	long_options = ['help','author=','journal=','year=','volume=','number=',
+		'supplement']
 	optlist,arglist=getopt.getopt(sys.argv[1:],'hA:J:Y:V:N:S',long_options)
 	#-- default: none
 	AUTHOR = []
