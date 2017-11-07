@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (09/2017)
+smart_citekeys.py (10/2017)
 Generates Papers2-like cite keys for BibTeX using information from crossref.org
 
 Enter DOI's of journals to generate "universal" keys
@@ -18,6 +18,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 10/2017: use modulus of 0xffffffff (4294967295)
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Forked 05/2017 from gen_citekeys.py to use information from crossref.org
 	Updated 05/2017: removing whitespace from authors.
@@ -74,10 +75,8 @@ def smart_citekey(doi):
 	year = date_parts[0]
 
 	#-- create citekey suffix using a DOI-based universal citekey
-	crc = binascii.crc32(doi)
 	#-- convert to unsigned 32-bit int if needed
-	if (crc < 0):
-		crc += 4294967296
+	crc = binascii.crc32(doi) & 0xffffffff
 	#-- generate individual hashes
 	hash1 = chr(int(ord('b') + math.floor((crc % (10*26))/26)))
 	hash2 = chr(int(ord('a') + (crc % 26)))

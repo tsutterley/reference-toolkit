@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-gen_citekeys.py (05/2017)
+gen_citekeys.py (10/2017)
 Generates Papers2-like cite keys for BibTeX
 
 Enter Author names and publication years
@@ -34,6 +34,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 10/2017: use modulus of 0xffffffff (4294967295)
 	Updated 05/2017: removing whitespace from authors.
 		Converting special characters with language_conversion program
 	Updated 02/2017: universal citekeys from DOI or title hashes
@@ -66,10 +67,8 @@ def gen_citekey(author,year,doi,title):
 	#-- then attempting a title-based universal citekey
 	#-- finally generating a random citekey (non-universal)
 	if doi:
-		crc = binascii.crc32(doi)
 		#-- convert to unsigned 32-bit int if needed
-		if (crc < 0):
-			crc += 4294967296
+		crc = binascii.crc32(doi) & 0xffffffff
 		#-- generate individual hashes
 		hash1 = chr(int(ord('b') + math.floor((crc % (10*26))/26)))
 		hash2 = chr(int(ord('a') + (crc % 26)))
@@ -79,10 +78,8 @@ def gen_citekey(author,year,doi,title):
 		#-- scrub special characters from title and set as lowercase
 		title = re.sub('[\_\-\=\/\|\.]',' ',title.lower())
 		title = ''.join(re.findall('[a-zA-Z0-9\s]',title))
-		crc = binascii.crc32(title)
 		#-- convert to unsigned 32-bit int if needed
-		if (crc < 0):
-			crc += 4294967296
+		crc = binascii.crc32(title) & 0xffffffff
 		#-- generate individual hashes
 		hash1 = chr(int(ord('t') + math.floor((crc % (4*26))/26)))
 		hash2 = chr(int(ord('a') + (crc % 26)))
