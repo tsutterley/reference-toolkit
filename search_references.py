@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (10/2017)
+search_references.py (11/2017)
 Reads bibtex files for each article in a given set of years to search for
 	keywords, authors, journal, etc using regular expressions
 
@@ -16,12 +16,14 @@ COMMAND LINE OPTIONS:
 	-J X, --journal=X: publication journals to search
 	-O, --open: open publication directory with found matches
 	-W, --webpage: open publication webpage with found matches
+	-E X, --export=X: export all found matches to a single bibtex file
 
 PROGRAM DEPENDENCIES:
 	read_referencerc.py: Sets default file path and file format for output files
 	language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+	Updated 11/2017: added export command to print matches to a single file
 	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 07/2017: print number of matching articles in search query
 	Updated 06/2017: added webbrowser to open the webpage of found articles
@@ -46,7 +48,7 @@ filepath = os.path.dirname(os.path.abspath(filename))
 #-- Reads bibtex files for each article stored in the working directory for
 #-- keywords, authors, journal, etc
 def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
-	WEBPAGE=False):
+	WEBPAGE=False, EXPORT=None):
 	#-- get reference filepath and reference format from referencerc file
 	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- bibtex fields to be printed in the output file
@@ -68,6 +70,9 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 		R3 = re.compile('|'.join(JOURNAL), flags=re.IGNORECASE)
 	if KEYWORDS:
 		R4 = re.compile('|'.join(KEYWORDS), flags=re.IGNORECASE)
+
+	#-- if exporting matches to a single file or standard output (to terminal)
+	fid = open(os.path.expanduser(EXPORT), 'w') if EXPORT else sys.stdout
 
 	#-- find directories of years
 	regex_years = '|'.join(YEAR) if YEAR else '\d+'
@@ -113,7 +118,7 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 					FLAG4 = R4.search(current_entry['keywords'])
 				#-- print the complete bibtex entry if search was found
 				if bool(FLAG1) & bool(FLAG2) & (bool(FLAG3) | bool(FLAG4)):
-					print(bibtex_entry)
+					print(bibtex_entry, file=fid)
 					file_opener(os.path.join(datapath,Y,A,fi)) if OPEN else None
 					#-- URL to open if WEBPAGE (from url or using doi)
 					if 'url' in current_entry.keys():
@@ -129,6 +134,8 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 	#-- print the number of matching and number of queried references
 	args = (match_count, query_count)
 	print('Matching references = {0:d} out of {1:d} queried'.format(*args))
+	#-- close the exported bibtex file
+	fid.close() if EXPORT else None
 
 #-- PURPOSE: platform independent file opener
 def file_opener(filename):
@@ -148,13 +155,14 @@ def usage():
 	print(' -Y X, --year=X\t\tYears of publication to search')
 	print(' -K X, --keyword=X\tKeywords to search')
 	print(' -O, --open\t\tOpen publication directory with found matches')
-	print(' -W, --webpage\t\tOpen publication webpage with found matches\n')
+	print(' -W, --webpage\t\tOpen publication webpage with found matches')
+	print(' -E X, --export=X\tExport found matches to a single bibtex file\n')
 
 #-- main program that calls search_references()
 def main():
 	long_options = ['help','author=','first','journal=','year=','keyword=',
-		'open','webpage']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'hA:FJ:Y:K:OW',long_options)
+		'open','webpage','export=']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'hA:FJ:Y:K:OWE:',long_options)
 	#-- default: none
 	AUTHOR = None
 	FIRST = False
@@ -163,6 +171,7 @@ def main():
 	KEYWORDS = None
 	OPEN = False
 	WEBPAGE = False
+	EXPORT = None
 	#-- for each input argument
 	for opt, arg in optlist:
 		if opt in ('-h','--help'):
@@ -182,10 +191,12 @@ def main():
 			OPEN = True
 		elif opt in ('-W','--webpage'):
 			WEBPAGE = True
+		elif opt in ('-E','--export'):
+			EXPORT = arg
 
 	#-- search references for requested fields
 	search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=FIRST, OPEN=OPEN,
-		WEBPAGE=WEBPAGE)
+		WEBPAGE=WEBPAGE, EXPORT=EXPORT)
 
 #-- run main program
 if __name__ == '__main__':
