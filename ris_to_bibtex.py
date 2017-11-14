@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (10/2017)
+ris_to_bibtex.py (11/2017)
 Converts RIS bibliography files into bibtex files with Universal citekeys
 	https://en.wikipedia.org/wiki/RIS_(file_format)
 
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
 		use data path and data file format from referencerc file
 	Updated 06/2017: added T2 for RIS entries with journal in T2 field
@@ -182,6 +183,8 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
+	#-- remove line skips and series of whitespace from title
+	current_entry['title'] = re.sub('\s+',' ',current_entry['title'])
 	#-- remove spaces, dashes and apostrophes from author_directory
 	author_directory = re.sub('\s','_',author_directory)
 	author_directory = re.sub('\-|\'','',author_directory)

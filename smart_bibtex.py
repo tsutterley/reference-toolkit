@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (10/2017)
+smart_bibtex.py (11/2017)
 Creates a entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -26,6 +26,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
 		use data path and data file format from referencerc file
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
@@ -168,6 +169,8 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 		current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
+	#-- remove line skips and series of whitespace from title
+	current_entry['title'] = re.sub('\s+',' ',current_entry['title'])
 	#-- remove spaces, dashes and apostrophes from author_directory
 	author_directory = re.sub('\s','_',author_directory)
 	author_directory = re.sub('\-|\'','',author_directory)
