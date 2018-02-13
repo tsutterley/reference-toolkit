@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (11/2017)
+format_bibtex.py (02/2018)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 02/2018: changed variable name of bibentry to bibtype
 	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
 		use data path and data file format from referencerc file
@@ -86,8 +87,8 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	bibtex_entry = {}
 	bibtex_key = {}
 	#-- extract bibtex entry type and bibtex cite key
-	bibentry,bibkey = R1.findall(file_contents).pop()
-	bibtex_key['entrytype'] = bibentry.lower()
+	bibtype,bibkey = R1.findall(file_contents).pop()
+	bibtex_key['entrytype'] = bibtype.lower()
 	bibtex_key['citekey'] = bibkey
 	bibtex_field_entries = R2.findall(file_contents)
 	bibtex_keywords = []
