@@ -60,10 +60,10 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0775):
 			FILES = [f for f in os.listdir(os.path.join(d_in,Y,A))
 				if re.match(regex,f)]
 			#-- transfer each article file (check if existing)
-			for transfer_file in FILES:
+			for fi in FILES:
 				input_dir = os.path.join(d_in,Y,A)
 				output_dir = os.path.join(d_out,Y,A)
-				transfer_file(transfer_file, input_dir, output_dir,
+				transfer_file(fi, input_dir, output_dir,
 					CLOBBER=CLOBBER, VERBOSE=VERBOSE, MODE=MODE)
 			#-- if there is supplementary information
 			if os.path.isdir(os.path.join(d_in,Y,A,S)):
@@ -71,10 +71,10 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0775):
 				FILES = [f for f in os.listdir(os.path.join(d_in,Y,A,S))
 					if re.match(regex,f)]
 				#-- transfer each supplementary file (check if existing)
-				for transfer_file in FILES:
+				for fi in FILES:
 					input_dir = os.path.join(d_in,Y,A,S)
 					output_dir = os.path.join(d_out,Y,A,S)
-					transfer_file(transfer_file, input_dir, output_dir,
+					transfer_file(fi, input_dir, output_dir,
 						CLOBBER=CLOBBER, VERBOSE=VERBOSE, MODE=MODE)
 
 #-- PURPOSE: push an input file to an output directory checking if file exists
