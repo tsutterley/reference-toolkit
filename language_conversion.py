@@ -191,6 +191,7 @@ def language_conversion(GREEK=True, SYMBOLS=True):
 		language_conversion_list.append(("\#","#",u"\u0023","#"))
 		language_conversion_list.append(("\&","&",u"\u0026","&"))
 		language_conversion_list.append(("\_","_",u"\u005F","_"))
+		language_conversion_list.append(("\~","~",u"\u223C","~"))
 		language_conversion_list.append(("${\^\\circ}$",u"\u00B0",u"\u00B0","o"))
 		language_conversion_list.append(("$\\times$",u"\u2715",u"\u2715","x"))
 
