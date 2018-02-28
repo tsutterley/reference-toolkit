@@ -106,8 +106,13 @@ def transfer_file(transfer_file, input_dir, output_dir, CLOBBER=False,
 	if TEST or CLOBBER:
 		args = (input_file,output_file,OVERWRITE)
 		print('{0} -->\n\t{1}{2}\n'.format(*args)) if VERBOSE else None
-		#-- copy input files to storage output
-		shutil.copyfile(input_file, output_file)
+		#-- check if input_file is a directory (e.g. unzipped Supplementary)
+		if os.path.isdir(input_file):
+			#-- copy input directory to storage output directory
+			shutil.copytree(input_file, output_file)
+		else:
+			#-- copy input files to storage output
+			shutil.copyfile(input_file, output_file)
 		#-- change the permissions level of the transported file to MODE
 		os.chmod(output_file, MODE)
 		#-- set modification times of the output file
