@@ -63,7 +63,7 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0775):
 			for fi in FILES:
 				input_dir = os.path.join(d_in,Y,A)
 				output_dir = os.path.join(d_out,Y,A)
-				transfer_file(fi, input_dir, output_dir,
+				transfer_push_file(fi, input_dir, output_dir,
 					CLOBBER=CLOBBER, VERBOSE=VERBOSE, MODE=MODE)
 			#-- if there is supplementary information
 			if os.path.isdir(os.path.join(d_in,Y,A,S)):
@@ -74,13 +74,13 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0775):
 				for fi in FILES:
 					input_dir = os.path.join(d_in,Y,A,S)
 					output_dir = os.path.join(d_out,Y,A,S)
-					transfer_file(fi, input_dir, output_dir,
+					transfer_push_file(fi, input_dir, output_dir,
 						CLOBBER=CLOBBER, VERBOSE=VERBOSE, MODE=MODE)
 
 #-- PURPOSE: push an input file to an output directory checking if file exists
 #-- and if the input file is newer than any existing output file
 #-- set the permissions mode of the transferred file to MODE
-def transfer_file(transfer_file, input_dir, output_dir, CLOBBER=False,
+def transfer_push_file(transfer_file, input_dir, output_dir, CLOBBER=False,
 	VERBOSE=False, MODE=0775):
 	#-- input and output versions of file
 	input_file = os.path.join(input_dir,transfer_file)
