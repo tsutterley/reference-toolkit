@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (11/2017)
+search_references.py (06/2018)
 Reads bibtex files for each article in a given set of years to search for
 	keywords, authors, journal, etc using regular expressions
 
@@ -14,6 +14,7 @@ COMMAND LINE OPTIONS:
 	-Y X, --year=X: years of publication to search (can be regular expression)
 	-K X, --keyword=X: keywords to search
 	-J X, --journal=X: publication journals to search
+	-D X, --doi=X: search for a specific set of DOIs
 	-O, --open: open publication directory with found matches
 	-W, --webpage: open publication webpage with found matches
 	-E X, --export=X: export all found matches to a single bibtex file
@@ -23,6 +24,7 @@ PROGRAM DEPENDENCIES:
 	language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+	Updated 06/2018: added DOI search using the -D or --doi options
 	Updated 11/2017: added export command to print matches to a single file
 	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 07/2017: print number of matching articles in search query
@@ -47,8 +49,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- Reads bibtex files for each article stored in the working directory for
 #-- keywords, authors, journal, etc
-def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
-	WEBPAGE=False, EXPORT=None):
+def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
+	OPEN=False, WEBPAGE=False, EXPORT=None):
 	#-- get reference filepath and reference format from referencerc file
 	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- bibtex fields to be printed in the output file
@@ -105,19 +107,23 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=False, OPEN=False,
 					current_entry[key.lower()] = val
 				#-- use search terms to find journals
 				#-- Search bibtex author entries for AUTHOR
-				FLAG1 = R2.search(current_entry['author']) if AUTHOR else True
+				F1 = R2.search(current_entry['author']) if AUTHOR else True
 				#-- Search bibtex journal entries for JOURNAL
-				FLAG2 = False if JOURNAL else True
+				F2 = False if JOURNAL else True
 				if ('journal' in current_entry.keys() and JOURNAL):
-					FLAG2 = R3.search(current_entry['journal'])
+					F2 = R3.search(current_entry['journal'])
 				#-- Search bibtex title entries for KEYWORDS
-				FLAG3 = R4.search(current_entry['title']) if KEYWORDS else True
+				F3 = R4.search(current_entry['title']) if KEYWORDS else True
 				#-- Search bibtex keyword entries for KEYWORDS
-				FLAG4 = False if KEYWORDS else True
+				F4 = False if KEYWORDS else True
 				if ('keywords' in current_entry.keys() and KEYWORDS):
-					FLAG4 = R4.search(current_entry['keywords'])
+					F4 = R4.search(current_entry['keywords'])
+				#-- Search bibtex DOI entries for a specific set of DOI's
+				F5 = False if DOI else True
+				if ('doi' in current_entry.keys() and DOI):
+					F5 = current_entry['doi'] in DOI
 				#-- print the complete bibtex entry if search was found
-				if bool(FLAG1) & bool(FLAG2) & (bool(FLAG3) | bool(FLAG4)):
+				if bool(F1) & bool(F2) & (bool(F3) | bool(F4)) & bool(F5):
 					print(bibtex_entry, file=fid)
 					file_opener(os.path.join(datapath,Y,A,fi)) if OPEN else None
 					#-- URL to open if WEBPAGE (from url or using doi)
@@ -154,21 +160,24 @@ def usage():
 	print(' -J X, --journal=X\tPublication journals to search')
 	print(' -Y X, --year=X\t\tYears of publication to search')
 	print(' -K X, --keyword=X\tKeywords to search')
+	print(' -D X, --doi=X\t\tSearch for a specific set of DOIs')
 	print(' -O, --open\t\tOpen publication directory with found matches')
 	print(' -W, --webpage\t\tOpen publication webpage with found matches')
 	print(' -E X, --export=X\tExport found matches to a single bibtex file\n')
 
 #-- main program that calls search_references()
 def main():
+	short_options = 'hA:FJ:Y:K:D:OWE:'
 	long_options = ['help','author=','first','journal=','year=','keyword=',
-		'open','webpage','export=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'hA:FJ:Y:K:OWE:',long_options)
+		'doi=','open','webpage','export=']
+	optlist,arglist = getopt.getopt(sys.argv[1:],short_options,long_options)
 	#-- default: none
 	AUTHOR = None
 	FIRST = False
 	JOURNAL = None
 	YEAR = None
 	KEYWORDS = None
+	DOI = None
 	OPEN = False
 	WEBPAGE = False
 	EXPORT = None
@@ -187,6 +196,8 @@ def main():
 			YEAR = arg.split(',')
 		elif opt in ('-K','--keyword'):
 			KEYWORDS = arg.split(',')
+		elif opt in ('-D','--doi'):
+			DOI = arg.split(',')
 		elif opt in ('-O','--open'):
 			OPEN = True
 		elif opt in ('-W','--webpage'):
@@ -195,8 +206,8 @@ def main():
 			EXPORT = arg
 
 	#-- search references for requested fields
-	search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, FIRST=FIRST, OPEN=OPEN,
-		WEBPAGE=WEBPAGE, EXPORT=EXPORT)
+	search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=FIRST,
+		OPEN=OPEN, WEBPAGE=WEBPAGE, EXPORT=EXPORT)
 
 #-- run main program
 if __name__ == '__main__':

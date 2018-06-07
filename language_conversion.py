@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-language_conversion_list.py (09/2017)
+language_conversion_list.py (04/2018)
 Mapping for converting to/from python unicode for special characters
     1st column: latex format for output bibtex files
     2nd column: character with combining modifier unicode
@@ -16,6 +16,7 @@ NOTES:
 		can add more entries to language_conversion_list
 
 UPDATE HISTORY:
+	Updated 04/2018: added A with tilde and C with acute
 	Updated 09/2017: added options GREEK and SYMBOLS to make iterations optional
 	Updated 06/2017: added more miscellaneous symbols for text to latex
 		added uppercase and lowercase y with diaeresis
@@ -38,20 +39,22 @@ def language_conversion(GREEK=True, SYMBOLS=True):
 	language_conversion_list.append(('{\\"o}', u'o\u0308', u'\u00F6','o'))
 	language_conversion_list.append(('{\\"u}', u'u\u0308', u'\u00FC','u'))
 	language_conversion_list.append(('{\\"y}', u'y\u0308', u'\u00FF','y'))
-	#-- Latin uppercase vowel letters with acute (accent)
+	#-- Latin uppercase letters with acute (accent)
 	language_conversion_list.append(("{\\'A}", u'A\u0301', u'\u00C1','A'))
 	language_conversion_list.append(("{\\'E}", u'E\u0301', u'\u00C9','E'))
 	language_conversion_list.append(("{\\'I}", u'I\u0301', u'\u00CD','I'))
 	language_conversion_list.append(("{\\'O}", u'O\u0301', u'\u00D3','O'))
 	language_conversion_list.append(("{\\'U}", u'U\u0301', u'\u00DA','U'))
 	language_conversion_list.append(("{\\'Y}", u'Y\u0301', u'\u00DD','Y'))
-	#-- Latin lowercase vowel letters with acute (accent)
+	language_conversion_list.append(("{\\'C}", u'C\u0301', u'\u0106','C'))
+	#-- Latin lowercase letters with acute (accent)
 	language_conversion_list.append(("{\\'a}", u'a\u0301', u'\u00E1','a'))
 	language_conversion_list.append(("{\\'e}", u'e\u0301', u'\u00E9','e'))
 	language_conversion_list.append(("{\\'i}", u'i\u0301', u'\u00ED','i'))
 	language_conversion_list.append(("{\\'o}", u'o\u0301', u'\u00F3','o'))
 	language_conversion_list.append(("{\\'u}", u'u\u0301', u'\u00FA','u'))
 	language_conversion_list.append(("{\\'y}", u'y\u0301', u'\u00FD','y'))
+	language_conversion_list.append(("{\\'c}", u'C\u0301', u'\u0107','c'))
 	#-- Latin uppercase vowel letters with grave (accent)
 	language_conversion_list.append(('{\\`A}', u'A\u0060', u'\u00C0','A'))
 	language_conversion_list.append(('{\\`E}', u'E\u0060', u'\u00C8','E'))
@@ -110,6 +113,9 @@ def language_conversion(GREEK=True, SYMBOLS=True):
 	language_conversion_list.append(('{\\u i}', u'i\u0306', u'\u012D','i'))
 	language_conversion_list.append(('{\\u o}', u'o\u0306', u'\u014F','o'))
 	language_conversion_list.append(('{\\u u}', u'u\u0306', u'\u016D','u'))
+	#-- Latin uppercase and lowercase A with tilde
+	language_conversion_list.append(('{\\~A}', u'A\u0303', u'\u00C3','A'))
+	language_conversion_list.append(('{\\~a}', u'a\u0303', u'\u00E3','a'))
 	#-- Latin uppercase and lowercase N with tilde (ene)
 	language_conversion_list.append(('{\\~N}', u'N\u0303', u'\u00D1','N'))
 	language_conversion_list.append(('{\\~n}', u'n\u0303', u'\u00F1','n'))
@@ -184,6 +190,7 @@ def language_conversion(GREEK=True, SYMBOLS=True):
 		language_conversion_list.append(("'","'",u'\u2019',"'"))
 		language_conversion_list.append(("``","\"",u'\u201C',"\""))
 		language_conversion_list.append(("''","\"",u'\u201D',"\""))
+		language_conversion_list.append(("-",u"\u2010",u'\u2010',u"\u2010"))
 		language_conversion_list.append(("--",u"\u2013",u'\u2013',u"\u2013"))
 		language_conversion_list.append(("---",u"\u2014",u'\u2014',u"\u2014"))
 		language_conversion_list.append((" "," ",u"\u00a0", " "))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (02/2018)
+format_bibtex.py (04/2018)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 04/2018: use regular expression for splitting between authors
 	Updated 02/2018: changed variable name of bibentry to bibtype
 	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
@@ -99,7 +100,7 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		elif (key.lower() == 'author') and (',' not in val):
 			#-- format authors in surname, given name(s)
 			current_authors = []
-			for A in val.split(' and '):
+			for A in re.split(' and ', val, flags=re.IGNORECASE):
 				#-- flip given name(s) and lastname
 				i = None; j = 0
 				#-- check if lastname is in list of known compound surnames
@@ -128,7 +129,7 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 			bibtex_entry[key.lower()] = ' and '.join(current_authors)
 		elif (key.lower() == 'author'):
 			current_authors = []
-			for A in val.split(' and '):
+			for A in re.split(' and ', val, flags=re.IGNORECASE):
 				ALN,AGN = A.split(', ')
 				#-- split initials if as a single variable
 				if re.match('([A-Z])\.([A-Z])\.', AGN):

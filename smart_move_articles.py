@@ -93,7 +93,7 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
 	#-- https://github.com/JabRef/abbrv.jabref.org/tree/master/journals
 	abbreviation_file = 'journal_abbreviations_webofscience-ts.txt'
 	#-- create regular expression pattern for extracting abbreviations
-	arg = re.sub('[^a-zA-z0-9\&\s]',"",journal)
+	arg = re.sub('[^a-zA-z0-9\&\s\,]',"",journal)
 	rx=re.compile('\n{0}[\s+]?\=[\s+]?(.*?)\n'.format(arg),flags=re.IGNORECASE)
 	#-- try to find journal article within filename from webofscience file
 	with open(os.path.join(filepath,abbreviation_file),'r') as f:

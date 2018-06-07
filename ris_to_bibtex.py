@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (11/2017)
+ris_to_bibtex.py (04/2018)
 Converts RIS bibliography files into bibtex files with Universal citekeys
 	https://en.wikipedia.org/wiki/RIS_(file_format)
 
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 04/2018: don't use abbreviations for valid journal names
 	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
 		use data path and data file format from referencerc file
@@ -51,8 +52,8 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	#-- get reference filepath and reference format from referencerc file
 	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- easily mappable RIS and bibtex fields
-	bibtex_field_map = {'JA':'journal','JO':'journal','T2':'journal',
-		'VL':'volume','IS':'number','PB':'publisher','SN':'issn','UR':'url'}
+	bibtex_field_map = {'JO':'journal','T2':'journal','VL':'volume',
+		'IS':'number','PB':'publisher','SN':'issn','UR':'url'}
 	#-- map between RIS TY entries and bibtex entries
 	bibtex_entry_map = {'JOUR':'article','BOOK':'book','CHAP':'inbook',
 		'CONF':'proceedings','RPRT':'techreport','THES':'phdthesis'}
