@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (10/2017)
+smart_citekeys.py (07/2018)
 Generates Papers2-like cite keys for BibTeX using information from crossref.org
 
 Enter DOI's of journals to generate "universal" keys
@@ -8,6 +8,10 @@ Enter DOI's of journals to generate "universal" keys
 CALLING SEQUENCE:
 	python gen_citekeys.py "11.1234/abc.222.987654"
 	will result in Smith:1997ct as the citekey
+
+PYTHON DEPENDENCIES:
+	future: Compatibility layer between Python 2 and Python 3
+		http://python-future.org/
 
 PROGRAM DEPENDENCIES:
 	language_conversion.py: Outputs map for converting symbols between languages
@@ -18,6 +22,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2018: using python3 urllib.request with future library
 	Updated 10/2017: use modulus of 0xffffffff (4294967295)
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Forked 05/2017 from gen_citekeys.py to use information from crossref.org
@@ -28,25 +33,27 @@ UPDATE HISTORY:
 	Written 02/2017
 """
 from __future__ import print_function
+import future.standard_library
 
 import sys
 import os
 import re
 import math
 import json
-import urllib2
 import binascii
 from language_conversion import language_conversion
+with future.standard_library.hooks():
+	import urllib.request
 
 #-- PURPOSE: check internet connection and URL
 def check_connection(doi):
 	#-- attempt to connect to remote url
 	remote_url = 'https://api.crossref.org/works/{0}'.format(doi)
 	try:
-		urllib2.urlopen(remote_url,timeout=20)
-	except urllib2.HTTPError:
+		urllib.request.urlopen(remote_url,timeout=20)
+	except urllib.request.HTTPError:
 		raise RuntimeError('Check URL: {0}'.format(remote_url))
-	except urllib2.URLError:
+	except urllib.request.URLError:
 		raise RuntimeError('Check internet connection')
 	else:
 		return True
@@ -54,8 +61,9 @@ def check_connection(doi):
 #-- PURPOSE: create a Papers2-like cite key using the DOI
 def smart_citekey(doi):
 	#-- open connection with crossref.org for DOI
-	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req,timeout=20).read())
+	crossref = 'https://api.crossref.org/works/{0}'.format(doi)
+	request = urllib.request.Request(url=crossref)
+	resp = json.loads(urllib.request.urlopen(request, timeout=20).read())
 
 	#-- get author and replace unicode characters in author with plain text
 	author = resp['message']['author'][0]['family'].decode('unicode-escape')

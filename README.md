@@ -90,6 +90,9 @@ for LV, CV, UV, PV in language_conversion():
 #### Journal Abbreviations
 [List of Journal Name and Abbreviation modified from Web of Science](https://github.com/JabRef/abbrv.jabref.org/tree/master/journals)  
 
+#### Dependencies
+ - [future: Compatibility layer between Python 2 and Python 3](http://python-future.org/)  
+
 #### Download
 The program homepage is:   
 https://github.com/tsutterley/reference-toolkit   
@@ -98,5 +101,5 @@ https://github.com/tsutterley/reference-toolkit/archive/master.zip
 
 #### Disclaimer  
 This program is not sponsored or maintained by the Universities Space Research Association (USRA) or NASA.
-The work here has absolutely no affiliation with the Papers App or the ReadCube company. 
+The work here has absolutely no affiliation with the Papers App or the ReadCube company.
 It is provided here for your convenience but _with no guarantees whatsoever_.  

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_move_articles.py (10/2017)
+smart_move_articles.py (07/2018)
 Moves a journal article and supplements to the references local directory
 	using information from crossref.org
 
@@ -19,6 +19,10 @@ COMMAND LINE OPTIONS:
 	-S, --supplement: file is a supplemental file
 	-C, --cleanup: Remove the input file after moving
 
+PYTHON DEPENDENCIES:
+	future: Compatibility layer between Python 2 and Python 3
+		http://python-future.org/
+
 PROGRAM DEPENDENCIES:
 	read_referencerc.py: Sets default file path and file format for output files
 	language_conversion.py: Outputs map for converting symbols between languages
@@ -30,6 +34,8 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2018: using python3 urllib.request with future library
+		tilde-expansion of input journal file
 	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
@@ -37,6 +43,7 @@ UPDATE HISTORY:
 	Written 05/2017
 """
 from __future__ import print_function
+import future.standard_library
 
 import sys
 import os
@@ -45,9 +52,10 @@ import json
 import shutil
 import inspect
 import getopt
-import urllib2
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
+with future.standard_library.hooks():
+	import urllib.request
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -61,8 +69,9 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
 	fileExtension=os.path.splitext(fi)[1] if os.path.splitext(fi)[1] else '.pdf'
 
 	#-- open connection with crossref.org for DOI
-	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req, timeout=20).read())
+	crossref = 'https://api.crossref.org/works/{0}'.format(doi)
+	request = urllib.request.Request(url=crossref)
+	resp = json.loads(urllib.request.urlopen(request, timeout=20).read())
 
 	#-- get author and replace unicode characters in author with plain text
 	author = resp['message']['author'][0]['family']
@@ -182,7 +191,7 @@ def main():
 
 	#-- run for each entered file
 	for FILE,D in zip(arglist,DOI):
-		smart_move_articles(FILE,D,SUPPLEMENT,CLEANUP)
+		smart_move_articles(os.path.expanduser(FILE),D,SUPPLEMENT,CLEANUP)
 
 #-- run main program
 if __name__ == '__main__':

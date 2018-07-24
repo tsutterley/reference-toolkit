@@ -35,6 +35,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2018: tilde-expansion of input journal file
 	Updated 10/2017: use data path and data file format from referencerc file
 	Written 05/2017
 """
@@ -181,8 +182,8 @@ def main():
 		NUMBER = ['']*len(arglist)
 
 	#-- run for each entered file
-	for FILE,A,J,Y,V,N in zip(arglist,AUTHOR,JOURNAL,YEAR,VOLUME,NUMBER):
-		move_journal_articles(FILE,A,J,Y,V,N,SUPPLEMENT,CLEANUP)
+	for F,A,J,Y,V,N in zip(arglist,AUTHOR,JOURNAL,YEAR,VOLUME,NUMBER):
+		move_journal_articles(os.path.expanduser(F),A,J,Y,V,N,SUPPLEMENT,CLEANUP)
 
 #-- run main program
 if __name__ == '__main__':

@@ -55,8 +55,9 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	bibtex_field_map = {'JO':'journal','T2':'journal','VL':'volume',
 		'IS':'number','PB':'publisher','SN':'issn','UR':'url'}
 	#-- map between RIS TY entries and bibtex entries
-	bibtex_entry_map = {'JOUR':'article','BOOK':'book','CHAP':'inbook',
-		'CONF':'proceedings','RPRT':'techreport','THES':'phdthesis'}
+	bibtex_entry_map = {'JOUR':'article','EJOU':'article','BOOK':'book',
+		'CHAP':'inbook','CONF':'proceedings','RPRT':'techreport',
+		'THES':'phdthesis'}
 	#-- fields of interest for parsing an RIS file
 	RIS_fields = ['TY','AU','A1','TI','T1','T2','JA','JO','PY','Y1','VL','IS',
 		'SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','N1','KW','AB','KW']

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (11/2017)
+smart_bibtex.py (07/2018)
 Creates a entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -14,6 +14,10 @@ COMMAND LINE OPTIONS:
 	-T, --type: pubication type (print or electronic).  Prefer print
 	-V, --verbose: Verbose output of output files (if output)
 
+PYTHON DEPENDENCIES:
+	future: Compatibility layer between Python 2 and Python 3
+		http://python-future.org/
+
 PROGRAM DEPENDENCIES:
 	gen_citekeys.py: Generates Papers2-like cite keys for BibTeX
 	read_referencerc.py: Sets default file path and file format for output files
@@ -26,6 +30,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 07/2018: using python3 urllib.request with future library
 	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
 		use data path and data file format from referencerc file
@@ -35,6 +40,7 @@ UPDATE HISTORY:
 	Written 06/2017
 """
 from __future__ import print_function
+import future.standard_library
 
 import sys
 import os
@@ -42,10 +48,11 @@ import re
 import json
 import getopt
 import inspect
-import urllib2
 from gen_citekeys import gen_citekey
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
+with future.standard_library.hooks():
+	import urllib.request
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -56,10 +63,10 @@ def check_connection(doi):
 	#-- attempt to connect to remote url
 	remote_url = 'https://api.crossref.org/works/{0}'.format(doi)
 	try:
-		urllib2.urlopen(remote_url,timeout=20)
-	except urllib2.HTTPError:
+		urllib.request.urlopen(remote_url,timeout=20)
+	except urllib.request.HTTPError:
 		raise RuntimeError('Check URL: {0}'.format(remote_url))
-	except urllib2.URLError:
+	except urllib.request.URLError:
 		raise RuntimeError('Check internet connection')
 	else:
 		return True
@@ -69,8 +76,9 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 	#-- get reference filepath and reference format from referencerc file
 	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 	#-- open connection with crossref.org for DOI
-	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req,timeout=20).read())
+	crossref = 'https://api.crossref.org/works/{0}'.format(doi)
+	request = urllib.request.Request(url=crossref)
+	resp = json.loads(urllib.request.urlopen(request, timeout=20).read())
 
 	#-- sort bibtex fields in output
 	bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,

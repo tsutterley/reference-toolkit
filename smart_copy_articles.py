@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (10/2017)
+smart_copy_articles.py (07/2018)
 Copies a journal article and supplements from a website to a local directory
 	 using information from crossref.org
 
@@ -30,6 +30,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2018: using urllib.request for python3 
 	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
@@ -46,9 +47,12 @@ import json
 import shutil
 import inspect
 import getopt
-import urllib2
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
+if sys.version_info[0] == 2:
+	import urllib2
+else:
+	import urllib.request as urllib2
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -147,7 +151,8 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 	CHUNK = 16 * 1024
 	#-- open url and copy contents to local file using chunked transfer encoding
 	#-- transfer should work properly with ascii and binary data formats
-	request=urllib2.Request(remote_file, headers={'User-Agent':"Magic Browser"})
+	headers = {'User-Agent':"Magic Browser"}
+	request = urllib2.Request(remote_file, headers=headers)
 	f_in = urllib2.urlopen(request, timeout=20)
 	with create_unique_filename(local_file) as f_out:
 		shutil.copyfileobj(f_in, f_out, CHUNK)
