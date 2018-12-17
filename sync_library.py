@@ -38,7 +38,7 @@ filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- Reads BibTeX files for each article stored in the working directory
 #-- exports as a single file sorted by BibTeX key
-def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0775):
+def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0o775):
 	#-- get reference filepath and reference format from referencerc file
 	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 
@@ -81,7 +81,7 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0775):
 #-- and if the input file is newer than any existing output file
 #-- set the permissions mode of the transferred file to MODE
 def transfer_push_file(transfer_file, input_dir, output_dir, CLOBBER=False,
-	VERBOSE=False, MODE=0775):
+	VERBOSE=False, MODE=0o775):
 	#-- input and output versions of file
 	input_file = os.path.join(input_dir,transfer_file)
 	output_file = os.path.join(output_dir,transfer_file)
@@ -138,7 +138,7 @@ def main():
 	PULL = False
 	CLOBBER = False
 	VERBOSE = False
-	MODE = 0775
+	MODE = 0o775
 	#-- for each input argument
 	for opt, arg in optlist:
 		if opt in ('-h','--help'):

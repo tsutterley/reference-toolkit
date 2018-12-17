@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (04/2018)
+format_bibtex.py (07/2018)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 07/2018: format editor fields to be "family name, given name"
 	Updated 04/2018: use regular expression for splitting between authors
 	Updated 02/2018: changed variable name of bibentry to bibtype
 	Updated 11/2017: remove line skips and series of whitespace from title
@@ -97,7 +98,7 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		if (key.lower() == 'title'):
 			#-- format titles in double curly brackets
 			bibtex_entry[key.lower()] = '{{{0}}}'.format(val)
-		elif (key.lower() == 'author') and (',' not in val):
+		elif (key.lower() in ('author','editor')) and (',' not in val):
 			#-- format authors in surname, given name(s)
 			current_authors = []
 			for A in re.split(' and ', val, flags=re.IGNORECASE):
@@ -127,7 +128,7 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 				current_authors.append('{0}, {1}'.format(ALN,AGN))
 			#-- merge authors list
 			bibtex_entry[key.lower()] = ' and '.join(current_authors)
-		elif (key.lower() == 'author'):
+		elif (key.lower() in ('author','editor')):
 			current_authors = []
 			for A in re.split(' and ', val, flags=re.IGNORECASE):
 				ALN,AGN = A.split(', ')

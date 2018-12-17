@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (04/2018)
+ris_to_bibtex.py (07/2018)
 Converts RIS bibliography files into bibtex files with Universal citekeys
 	https://en.wikipedia.org/wiki/RIS_(file_format)
 
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 07/2018: added editor fields as valid RIS entries with format FN,GN
 	Updated 04/2018: don't use abbreviations for valid journal names
 	Updated 11/2017: remove line skips and series of whitespace from title
 	Updated 10/2017: if --output place file in reference directory
@@ -59,8 +60,9 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		'CHAP':'inbook','CONF':'proceedings','RPRT':'techreport',
 		'THES':'phdthesis'}
 	#-- fields of interest for parsing an RIS file
-	RIS_fields = ['TY','AU','A1','TI','T1','T2','JA','JO','PY','Y1','VL','IS',
-		'SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','N1','KW','AB','KW']
+	RIS_fields = ['TY','AU','A1','A2','ED','TI','T1','T2','JA','JO','PY','Y1',
+		'VL','IS','SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','N1','KW',
+		'AB','KW']
 	#-- regular expression for reading RIS files
 	RIS_regex = '({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
 	R1 = re.compile(RIS_regex, flags=re.IGNORECASE)
@@ -91,6 +93,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	current_entry['doi'] = ''
 	#-- list of authors for current entry
 	current_authors = []
+	current_editors = []
 	current_keywords = []
 	current_pages = [None,None]
 	#-- read each line to create bibtex entry
@@ -108,13 +111,16 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		elif RIS_field in ('TI','T1'):
 			#-- format titles in double curly brackets
 			current_entry['title'] = '{{{0}}}'.format(RIS_value)
-		elif RIS_field in ('AU','A1'):
+		elif RIS_field in ('AU','A1','A2','ED'):
 			#-- check if author fields are initially uppercase: change to title
 			RIS_value = RIS_value.title() if RIS_value.isupper() else RIS_value
 			#-- output formatted author field = lastname, given name(s)
 			if re.match('(.*?),\s(.*?)',RIS_value):
 				#-- add to authors list
-				current_authors.append(RIS_value)
+				if RIS_field in ('ED'):
+					current_editors.append(RIS_value)
+				elif RIS_field in ('AU','A1','A2'):
+					current_authors.append(RIS_value)
 			else:
 				#-- flip given name(s) and lastname
 				i = None; j = 0
@@ -138,8 +144,11 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 					AGN=' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.',AGN).pop())
 				elif re.match('([A-Z])\.', AGN):
 					AGN=' '.join(re.findall('([A-Z])\.',AGN))
-				#-- add to current authors list
-				current_authors.append('{0}, {1}'.format(ALN,AGN))
+				#-- add to current authors or editors list
+				if RIS_field in ('ED'):
+					current_editors.append('{0}, {1}'.format(ALN,AGN))
+				elif RIS_field in ('AU','A1','A2'):
+					current_authors.append('{0}, {1}'.format(ALN,AGN))
 		elif RIS_field in ('PY','Y1'):
 			#-- partition between publication date to YY/MM/DD
 			cal_date = [int(d) for d in re.findall('\d+',RIS_value)]
@@ -174,6 +183,8 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	current_entry['author'] = ' and '.join(current_authors).decode('utf-8')
 	current_entry['title'] = current_entry['title'].decode('utf-8')
 	current_entry['journal'] = current_entry['journal'].decode('utf-8')
+	if current_editors:
+		current_entry['editor'] = ' and '.join(current_editors).decode('utf-8')
 	#-- firstauthor: replace unicode characters with plain text
 	#-- bibtex entry for authors: replace unicode characters with latex symbols
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
@@ -183,6 +194,8 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		current_entry['author'] = current_entry['author'].replace(UV, LV)
 		current_entry['title'] = current_entry['title'].replace(UV, LV)
 		current_entry['journal'] = current_entry['journal'].replace(UV, LV)
+		if current_editors:
+			current_entry['editor'] = current_entry['editor'].replace(UV, LV)
 	#-- encode as utf-8
 	firstauthor = firstauthor.encode('utf-8')
 	#-- remove line skips and series of whitespace from title

@@ -186,6 +186,7 @@ def language_conversion(GREEK=True, SYMBOLS=True):
 	#-- if iterating through symbols
 	if SYMBOLS:
 		#-- Miscellaneous Symbols
+		language_conversion_list.append((" ",u'\u2009',u'\u2009'," "))
 		language_conversion_list.append(("`",u'\u2018',u'\u2018',"'"))
 		language_conversion_list.append(("'","'",u'\u2019',"'"))
 		language_conversion_list.append(("``","\"",u'\u201C',"\""))
