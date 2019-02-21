@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 u"""
-sync_library.py (02/2018)
+sync_library.py (02/2019)
 Exports complete library into a new directory (such as a mounted-drive)
 Will only copy new or overwritten files by checking the last modified dates
 
 CALLING SEQUENCE:
-	python sync_library.py -V ~/references.dir
+	python sync_library.py -V /path_to_external_library/references.dir
 
 INPUTS:
 	Directory for outputting reference library
 
 COMMAND LINE OPTIONS:
 	-P, --pull: Transfer files from external directory to library
+	-L, --list: List files without transferring
 	-C, --clobber: Overwrite existing data in transfer
 	-V, --verbose: Print all transferred files
 	-M X, --mode=X: Permission mode of files transferred
@@ -20,6 +21,7 @@ PROGRAM DEPENDENCIES:
 	read_referencerc.py: Sets default file path and file format for output files
 
 UPDATE HISTORY:
+	Updated 02/2019: added option list to only print the files to be transferred
 	Written 02/2018
 """
 from __future__ import print_function
@@ -38,7 +40,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- Reads BibTeX files for each article stored in the working directory
 #-- exports as a single file sorted by BibTeX key
-def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0o775):
+def sync_library(DIRECTORY, PULL=False, LIST=False, VERBOSE=False,
+	CLOBBER=False, MODE=0o775):
 	#-- get reference filepath and reference format from referencerc file
 	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
 
@@ -63,7 +66,7 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0o775):
 			for fi in FILES:
 				input_dir = os.path.join(d_in,Y,A)
 				output_dir = os.path.join(d_out,Y,A)
-				transfer_push_file(fi, input_dir, output_dir,
+				transfer_push_file(fi, input_dir, output_dir, LIST=LIST,
 					CLOBBER=CLOBBER, VERBOSE=VERBOSE, MODE=MODE)
 			#-- if there is supplementary information
 			if os.path.isdir(os.path.join(d_in,Y,A,S)):
@@ -74,14 +77,14 @@ def sync_library(DIRECTORY,PULL=False,CLOBBER=False,VERBOSE=False,MODE=0o775):
 				for fi in FILES:
 					input_dir = os.path.join(d_in,Y,A,S)
 					output_dir = os.path.join(d_out,Y,A,S)
-					transfer_push_file(fi, input_dir, output_dir,
+					transfer_push_file(fi, input_dir, output_dir, LIST=LIST,
 						CLOBBER=CLOBBER, VERBOSE=VERBOSE, MODE=MODE)
 
 #-- PURPOSE: push an input file to an output directory checking if file exists
 #-- and if the input file is newer than any existing output file
 #-- set the permissions mode of the transferred file to MODE
-def transfer_push_file(transfer_file, input_dir, output_dir, CLOBBER=False,
-	VERBOSE=False, MODE=0o775):
+def transfer_push_file(transfer_file, input_dir, output_dir, LIST=False,
+	CLOBBER=False, VERBOSE=False, MODE=0o775):
 	#-- input and output versions of file
 	input_file = os.path.join(input_dir,transfer_file)
 	output_file = os.path.join(output_dir,transfer_file)
@@ -104,19 +107,21 @@ def transfer_push_file(transfer_file, input_dir, output_dir, CLOBBER=False,
 		OVERWRITE = ' (new)'
 	#-- if output file does not exist, is to be overwritten, or CLOBBER is set
 	if TEST or CLOBBER:
-		args = (input_file,output_file,OVERWRITE)
-		print('{0} -->\n\t{1}{2}\n'.format(*args)) if VERBOSE else None
-		#-- check if input_file is a directory (e.g. unzipped Supplementary)
-		if os.path.isdir(input_file):
-			#-- copy input directory to storage output directory
-			shutil.copytree(input_file, output_file)
-		else:
-			#-- copy input files to storage output
-			shutil.copyfile(input_file, output_file)
-		#-- change the permissions level of the transported file to MODE
-		os.chmod(output_file, MODE)
-		#-- set modification times of the output file
-		os.utime(output_file, (os.stat(output_file).st_atime,input_mtime))
+		if VERBOSE or LIST:
+			print('{0} -->\n\t{1}{2}\n'.format(input_file,output_file,OVERWRITE))
+		#-- if transferring files and not only printing the filenames
+		if not LIST:
+			#-- check if input_file is a directory (e.g. unzipped Supplementary)
+			if os.path.isdir(input_file):
+				#-- copy input directory to storage output directory
+				shutil.copytree(input_file, output_file)
+			else:
+				#-- copy input files to storage output
+				shutil.copyfile(input_file, output_file)
+			#-- change the permissions level of the transported file to MODE
+			os.chmod(output_file, MODE)
+			#-- set modification times of the output file
+			os.utime(output_file, (os.stat(output_file).st_atime,input_mtime))
 
 #-- PURPOSE: rounds a number to an even number less than or equal to original
 def even(i):
@@ -126,16 +131,18 @@ def even(i):
 def usage():
 	print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
 	print(' -P, --pull\t\tTransfer files from external directory to library')
+	print(' -L, --list\t\tList files without transferring')
 	print(' -C, --clobber\t\tOverwrite existing data in transfer')
 	print(' -V, --verbose\t\tPrint all transferred files')
 	print(' -M X, --mode=X\t\tPermission mode of files transferred\n')
 
 #-- main program that calls sync_library()
 def main():
-	long_options = ['help','pull','clobber','verbose','mode=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'hPCVM:',long_options)
+	long_options = ['help','pull','list','clobber','verbose','mode=']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'hPLCVM:',long_options)
 	#-- command-line options
 	PULL = False
+	LIST = False
 	CLOBBER = False
 	VERBOSE = False
 	MODE = 0o775
@@ -146,6 +153,8 @@ def main():
 			sys.exit()
 		elif opt in ('-P','--pull'):
 			PULL = True
+		elif opt in ('-L','--list'):
+			LIST = True
 		elif opt in ('-C','--clobber'):
 			CLOBBER = True
 		elif opt in ('-V','--verbose'):
@@ -159,8 +168,8 @@ def main():
 
 	#-- export references to a new directory
 	for DIRECTORY in arglist:
-		sync_library(os.path.expanduser(DIRECTORY), PULL=PULL, VERBOSE=VERBOSE,
-			CLOBBER=CLOBBER, MODE=MODE)
+		sync_library(os.path.expanduser(DIRECTORY), PULL=PULL, LIST=LIST,
+			VERBOSE=VERBOSE, CLOBBER=CLOBBER, MODE=MODE)
 
 #-- run main program
 if __name__ == '__main__':
