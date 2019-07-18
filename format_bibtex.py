@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (07/2018)
+format_bibtex.py (07/2019)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
 		https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+	Updated 07/2019: modifications for python3 string compatibility
 	Updated 07/2018: format editor fields to be "family name, given name"
 	Updated 04/2018: use regular expression for splitting between authors
 	Updated 02/2018: changed variable name of bibentry to bibtype
@@ -157,10 +158,16 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 	if bibtex_entry['author'].isupper():
 		bibtex_entry['author'] = bibtex_entry['author'].title()
 	#-- extract surname of first author
-	firstauthor = bibtex_entry['author'].split(',')[0].decode('utf-8')
-	author_directory = bibtex_entry['author'].split(',')[0].decode('utf-8')
-	bibtex_entry['author'] = bibtex_entry['author'].decode('utf-8')
-	bibtex_entry['title'] = bibtex_entry['title'].decode('utf-8')
+	firstauthor = bibtex_entry['author'].split(',')[0]
+	author_directory = bibtex_entry['author'].split(',')[0]
+
+	#-- decode from utf-8
+	if sys.version_info[0] == 2:
+		firstauthor = firstauthor.decode('utf-8')
+		author_directory = author_directory.decode('utf-8')
+		bibtex_entry['author'] = bibtex_entry['author'].decode('utf-8')
+		bibtex_entry['title'] = bibtex_entry['title'].decode('utf-8')
+
 	#-- firstauthor: replace unicode characters with plain text
 	#-- author_directory: replace unicode characters with combined unicode
 	#-- bibtex entry for authors: replace unicode characters with latex symbols

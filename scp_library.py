@@ -5,7 +5,7 @@ Exports complete library into a remote directory via scp
 Will only copy new or overwritten files by checking the last modified dates
 
 CALLING SEQUENCE:
-	python scp_library.py -V remote:/path_to_remote_library/references.dir
+	python scp_library.py -V remote:/path_to_remote_library
 
 INPUTS:
 	remote directory for outputting reference library

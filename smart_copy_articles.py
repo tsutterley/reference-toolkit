@@ -30,7 +30,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
-	Updated 07/2018: using urllib.request for python3 
+	Updated 07/2018: using urllib.request for python3
 	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
 	Updated 06/2017: use language_conversion for journal name
@@ -59,12 +59,12 @@ filename = inspect.getframeinfo(inspect.currentframe()).filename
 filepath = os.path.dirname(os.path.abspath(filename))
 
 #-- PURPOSE: check internet connection and URL
-def check_connection(remote_file):
+def check_connection(remote_url):
 	#-- attempt to connect to remote file
 	try:
-		urllib2.urlopen(remote_file, timeout=20)
+		urllib2.urlopen(remote_url, timeout=20)
 	except urllib2.HTTPError:
-		raise RuntimeError('Check URL: {0}'.format(remote_file))
+		raise RuntimeError('Check URL: {0}'.format(remote_url))
 	except urllib2.URLError:
 		raise RuntimeError('Check internet connection')
 	else:
@@ -201,9 +201,9 @@ def main():
 			SUPPLEMENT = True
 
 	#-- run for each entered url to a remote file
-	for FILE,D in zip(arglist,DOI):
-		if check_connection(FILE):
-			smart_copy_articles(FILE,D,SUPPLEMENT)
+	for remote_url,D in zip(arglist,DOI):
+		if check_connection(remote_url):
+			smart_copy_articles(remote_url,D,SUPPLEMENT)
 
 #-- run main program
 if __name__ == '__main__':

@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 u"""
-read_referencerc.py (10/2017)
+read_referencerc.py (02/2018)
 Reads the supplied referencerc file for default file path and file format
+UPDATE HISTORY:
+	Updated 02/2018: using str instead of unicode for python3 compatibility
+	Written 10/2017
 """
 #-- PURPOSE: read referencerc file and extract parameters
 def read_referencerc(referencerc_file):
@@ -20,5 +23,5 @@ def read_referencerc(referencerc_file):
 		parameters[part[0].strip()] = part[1].strip()
 	#-- return the file path and file format
 	datapath = os.path.expanduser(parameters['datapath'])
-	dataformat = unicode(parameters['dataformat'])
+	dataformat = str(parameters['dataformat'])
 	return datapath, dataformat

@@ -6,6 +6,8 @@ reference-toolkit
 - [BibTeX](http://www.bibtex.org/)  
 - [Papers2 universal-citekey-js](https://github.com/cparnot/universal-citekey-js)  
 - [ReadCube Papers](https://www.readcube.com/papers/)  
+- [crossref REST API](https://api.crossref.org/)
+- [crossref REST API status](http://status.crossref.org/)
 
 Stores journal articles in a tree structure based from directory provided in the .referencerc file   
 Saves journal articles and article supplements with name format provided in the .referencerc file   
@@ -18,7 +20,7 @@ Formats `*.ris` and `*.bib` bibliography files into a standard format
 ```bash
 python gen_citekeys.py --author=Rignot --year=2008 --doi="10.1038/ngeo102"
 ```
-`smart_citekeys.py`: Creates Papers2-like cite keys using information from crossref.org  
+`smart_citekeys.py`: Creates Papers2-like cite keys using information from the [crossref REST API](https://api.crossref.org/)  
 ```bash
 python smart_citekeys.py "10.1038/ngeo102"
 ```
@@ -27,7 +29,7 @@ python smart_citekeys.py "10.1038/ngeo102"
 ```bash
 python format_bibtex.py -C -O example.bib
 ```
-`smart_bibtex.py`: Creates a BibTeX entry with Universal cite keys using information from crossref.org  
+`smart_bibtex.py`: Creates a BibTeX entry with Universal cite keys using information from the [crossref REST API](https://api.crossref.org/)  
 ```bash
 python smart_bibtex.py -O "10.1038/ngeo102"
 ```
@@ -42,7 +44,7 @@ python copy_journal_articles.py --author=Rignot --year=2008 \
 	--journal="Nature Geoscience" --volume=1 \
 	https://www.nature.com/ngeo/journal/v1/n2/pdf/ngeo102.pdf
 ```
-`smart_copy_articles.py`: Copies a journal article and supplements from a website to the reference directory using DOI's  
+`smart_copy_articles.py`: Copies a journal article and supplements from a website to the reference directory using the [crossref REST API](https://api.crossref.org/)  
 ```bash
 python smart_copy_articles.py --doi=10.1038/ngeo102 \
 	https://www.nature.com/ngeo/journal/v1/n2/pdf/ngeo102.pdf
@@ -53,7 +55,7 @@ python smart_copy_articles.py --doi=10.1038/ngeo102 \
 python move_journal_article.py --author=Rignot --year=2008 \
 	--journal="Nature Geoscience" --volume=1 ~/Downloads/ngeo102.pdf
 ```
-`smart_move_articles.py`: Copies a journal article and supplements from a local directory to the reference directory using DOI's  
+`smart_move_articles.py`: Copies a journal article and supplements from a local directory to the reference directory using the [crossref REST API](https://api.crossref.org/)  
 ```bash
 python smart_move_articles.py --doi=10.1038/ngeo102 ~/Downloads/ngeo102.pdf
 ```
@@ -72,9 +74,13 @@ python open_doi.py 10.1038/ngeo102
 ```bash
 python export_library.py  --sort=author --export=bibtex_library.bib
 ```
-`sync_library.py`: Exports complete library with all files into a new directory  
+`sync_library.py`: Syncs complete library with a different directory  
 ```bash
 python sync_library.py -V ~/references.dir
+```
+`scp_library.py`: Syncs complete library with a remote host   
+```bash
+python scp_library.py -V user@remote:~/references.dir
 ```
 
 `language_conversion.py`: Mapping function that converts to/from LaTeX and python unicode for special characters  

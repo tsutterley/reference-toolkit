@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-move_journal_articles.py (10/2017)
+move_journal_articles.py (07/2019)
 Moves a journal article and supplements to the references local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
@@ -35,6 +35,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2019: modifications for python3 string compatibility
 	Updated 07/2018: tilde-expansion of input journal file
 	Updated 10/2017: use data path and data file format from referencerc file
 	Written 05/2017
@@ -80,7 +81,8 @@ def move_journal_articles(fi,author,journal,year,volume,number,SUPPLEMENT,CLEANU
 		abbreviation = rx.findall(abbreviation_contents)[0]
 
 	#-- replace unicode characters with combining unicode version
-	author = author.decode('unicode-escape')
+	if sys.version_info[0] == 2:
+		author = author.decode('unicode-escape')
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
 		author = author.replace(UV, CV)

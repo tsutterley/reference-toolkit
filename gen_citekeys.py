@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-gen_citekeys.py (10/2017)
+gen_citekeys.py (07/2019)
 Generates Papers2-like cite keys for BibTeX
 
 Enter Author names and publication years
@@ -34,6 +34,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2019: modifications for python3 string compatibility
 	Updated 10/2017: use modulus of 0xffffffff (4294967295)
 	Updated 05/2017: removing whitespace from authors.
 		Converting special characters with language_conversion program
@@ -60,7 +61,8 @@ def gen_citekey(author,year,doi,title):
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
 		author = author.replace(UV, PV)
-	author = re.sub('\s|\-\'','',author.encode('utf-8'))
+	#-- replace symbols
+	author = re.sub(b'\s|\-|\'',b'',author.encode('utf-8')).decode('utf-8')
 
 	#-- create citekey suffix first attempting:
 	#-- a DOI-based universal citekey
@@ -68,7 +70,7 @@ def gen_citekey(author,year,doi,title):
 	#-- finally generating a random citekey (non-universal)
 	if doi:
 		#-- convert to unsigned 32-bit int if needed
-		crc = binascii.crc32(doi) & 0xffffffff
+		crc = binascii.crc32(doi.encode('utf-8')) & 0xffffffff
 		#-- generate individual hashes
 		hash1 = chr(int(ord('b') + math.floor((crc % (10*26))/26)))
 		hash2 = chr(int(ord('a') + (crc % 26)))

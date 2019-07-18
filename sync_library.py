@@ -5,7 +5,7 @@ Exports complete library into a new directory (such as a mounted-drive)
 Will only copy new or overwritten files by checking the last modified dates
 
 CALLING SEQUENCE:
-	python sync_library.py -V /path_to_external_library/references.dir
+	python sync_library.py -V /path_to_external_library
 
 INPUTS:
 	Directory for outputting reference library

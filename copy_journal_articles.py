@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-copy_journal_articles.py (07/2018)
+copy_journal_articles.py (07/2019)
 Copies a journal article and supplements from a website to a local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
@@ -35,6 +35,7 @@ NOTES:
 		unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2019: modifications for python3 string compatibility
 	Updated 07/2018: using urllib.request for python3
 	Updated 10/2017: use data path and data file format from referencerc file
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
@@ -100,7 +101,8 @@ def copy_journal_articles(remote,author,journal,year,volume,number,SUPPLEMENT):
 		abbreviation = rx.findall(abbreviation_contents)[0]
 
 	#-- replace unicode characters with combining unicode version
-	author = author.decode('unicode-escape')
+	if sys.version_info[0] == 2:
+		author = author.decode('unicode-escape')
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
 		author = author.replace(UV, CV)

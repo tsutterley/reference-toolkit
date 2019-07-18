@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (06/2018)
+search_references.py (07/2019)
 Reads bibtex files for each article in a given set of years to search for
 	keywords, authors, journal, etc using regular expressions
 
@@ -24,6 +24,7 @@ PROGRAM DEPENDENCIES:
 	language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+	Updated 07/2019: modifications for python3 string compatibility
 	Updated 06/2018: added DOI search using the -D or --doi options
 	Updated 11/2017: added export command to print matches to a single file
 	Updated 10/2017: use data path and data file format from referencerc file
@@ -100,7 +101,8 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
 				for key,val in bibtex_field_entries:
 					#-- replace latex symbols with unicode characters
 					#-- 1: latex, 2: combining unicode, 3: unicode, 4: plain
-					val = val.decode('unicode-escape')
+					if sys.version_info[0] == 2:
+						val = val.decode('unicode-escape')
 					for LV, CV, UV, PV in language_conversion():
 						val = val.replace(LV,CV)
 					#-- add to current entry dictionary

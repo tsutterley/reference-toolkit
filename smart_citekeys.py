@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (07/2018)
+smart_citekeys.py (07/2019)
 Generates Papers2-like cite keys for BibTeX using information from crossref.org
 
 Enter DOI's of journals to generate "universal" keys
@@ -22,6 +22,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 07/2019: modifications for python3 string compatibility
 	Updated 07/2018: using python3 urllib.request with future library
 	Updated 10/2017: use modulus of 0xffffffff (4294967295)
 	Updated 09/2017: use timeout of 20 to prevent socket.timeout
@@ -66,13 +67,16 @@ def smart_citekey(doi):
 	resp = json.loads(urllib.request.urlopen(request, timeout=20).read())
 
 	#-- get author and replace unicode characters in author with plain text
-	author = resp['message']['author'][0]['family'].decode('unicode-escape')
+	author = resp['message']['author'][0]['family']
+	if sys.version_info[0] == 2:
+		author = author.decode('unicode-escape')
 	#-- check if author fields are initially uppercase: change to title
 	author = author.title() if author.isupper() else author
 	#-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
 	for LV, CV, UV, PV in language_conversion():
 		author = author.replace(UV, PV)
-	author = re.sub('\s|\-|\'','',author.encode('utf-8'))
+	#-- replace symbols
+	author = re.sub(b'\s|\-|\'',b'',author.encode('utf-8')).decode('utf-8')
 
 	#-- get publication date (prefer date when in print)
 	if 'published-print' in resp['message'].keys():
@@ -84,7 +88,7 @@ def smart_citekey(doi):
 
 	#-- create citekey suffix using a DOI-based universal citekey
 	#-- convert to unsigned 32-bit int if needed
-	crc = binascii.crc32(doi) & 0xffffffff
+	crc = binascii.crc32(doi.encode('utf-8')) & 0xffffffff
 	#-- generate individual hashes
 	hash1 = chr(int(ord('b') + math.floor((crc % (10*26))/26)))
 	hash2 = chr(int(ord('a') + (crc % 26)))
