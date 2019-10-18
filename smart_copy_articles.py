@@ -81,7 +81,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 
 	#-- open connection with crossref.org for DOI
 	req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-	resp = json.loads(urllib2.urlopen(req, timeout=20).read())
+	resp = json.loads(urllib2.urlopen(req, timeout=40).read())
 
 	#-- get author and replace unicode characters in author with plain text
 	author = resp['message']['author'][0]['family']

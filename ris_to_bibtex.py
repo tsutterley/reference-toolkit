@@ -62,8 +62,8 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		'THES':'phdthesis'}
 	#-- fields of interest for parsing an RIS file
 	RIS_fields = ['TY','AU','A1','A2','ED','TI','T1','T2','JA','JO','PY','Y1',
-		'VL','IS','SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','N1','KW',
-		'AB','KW']
+		'VL','IS','SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','DOI','N1',
+		'KW','AB','KW']
 	#-- regular expression for reading RIS files
 	RIS_regex = '({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
 	R1 = re.compile(RIS_regex, flags=re.IGNORECASE)
@@ -167,7 +167,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 		elif RIS_field in ('EP','LP') and bool(re.search('\d+',RIS_value)):
 			#-- add ending page to current_pages array
 			current_pages[1] = RIS_value
-		elif RIS_field in ('L3','DO','N1','M3') and bool(R2.search(RIS_value)):
+		elif RIS_field in ('L3','DO','N1','M3','DOI') and bool(R2.search(RIS_value)):
 			#-- extract DOI
 			current_entry['doi'] = R2.search(RIS_value).group(3)
 		elif (RIS_field == 'KW'):

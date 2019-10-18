@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-gen_citekeys.py (07/2019)
+gen_citekeys.py (10/2019)
 Generates Papers2-like cite keys for BibTeX
 
 Enter Author names and publication years
@@ -34,6 +34,7 @@ NOTES:
 	Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+	Updated 10/2019: strip title of leading and trailing whitespace before hash
 	Updated 07/2019: modifications for python3 string compatibility
 	Updated 10/2017: use modulus of 0xffffffff (4294967295)
 	Updated 05/2017: removing whitespace from authors.
@@ -78,10 +79,10 @@ def gen_citekey(author,year,doi,title):
 		key = hash1 + hash2
 	elif title:
 		#-- scrub special characters from title and set as lowercase
-		title = re.sub('[\_\-\=\/\|\.]',' ',title.lower())
+		title = re.sub('[\_\-\=\/\|\.\{\}]',' ',title.lower())
 		title = ''.join(re.findall('[a-zA-Z0-9\s]',title))
 		#-- convert to unsigned 32-bit int if needed
-		crc = binascii.crc32(title) & 0xffffffff
+		crc = binascii.crc32(title.strip().encode('utf-8')) & 0xffffffff
 		#-- generate individual hashes
 		hash1 = chr(int(ord('t') + math.floor((crc % (4*26))/26)))
 		hash2 = chr(int(ord('a') + (crc % 26)))

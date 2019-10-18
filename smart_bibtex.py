@@ -78,7 +78,7 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
 	#-- open connection with crossref.org for DOI
 	crossref = 'https://api.crossref.org/works/{0}'.format(doi)
 	request = urllib.request.Request(url=crossref)
-	resp = json.loads(urllib.request.urlopen(request, timeout=20).read())
+	resp = json.loads(urllib.request.urlopen(request, timeout=40).read())
 
 	#-- sort bibtex fields in output
 	bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,
