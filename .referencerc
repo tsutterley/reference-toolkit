@@ -3,7 +3,7 @@
 # This is a sample configuration file for the python reference-toolkit program
 
 # root directory for storing reference articles and bibtex files
-datapath : ~/references.dir
+datapath : ~/references
 
 # format used for saving articles using string formatter https://pyformat.info/
 # default: `AuthorLastName_JournalAbbreviation-Volume_Year.pdf`
