@@ -2,35 +2,35 @@
 u"""
 search_references.py (07/2019)
 Reads bibtex files for each article in a given set of years to search for
-	keywords, authors, journal, etc using regular expressions
+    keywords, authors, journal, etc using regular expressions
 
 CALLING SEQUENCE:
-	python search_references.py -A Rignot -F -Y 2008 -J "Nature Geoscience"
-		will return the bibtex entry for this publication
+    python search_references.py -A Rignot -F -Y 2008 -J "Nature Geoscience"
+        will return the bibtex entry for this publication
 
 COMMAND LINE OPTIONS:
-	-A X, --author=X: last name of author of publications to search
-	-F, --first: Search only first authors
-	-Y X, --year=X: years of publication to search (can be regular expression)
-	-K X, --keyword=X: keywords to search
-	-J X, --journal=X: publication journals to search
-	-D X, --doi=X: search for a specific set of DOIs
-	-O, --open: open publication directory with found matches
-	-W, --webpage: open publication webpage with found matches
-	-E X, --export=X: export all found matches to a single bibtex file
+    -A X, --author=X: last name of author of publications to search
+    -F, --first: Search only first authors
+    -Y X, --year=X: years of publication to search (can be regular expression)
+    -K X, --keyword=X: keywords to search
+    -J X, --journal=X: publication journals to search
+    -D X, --doi=X: search for a specific set of DOIs
+    -O, --open: open publication directory with found matches
+    -W, --webpage: open publication webpage with found matches
+    -E X, --export=X: export all found matches to a single bibtex file
 
 PROGRAM DEPENDENCIES:
-	read_referencerc.py: Sets default file path and file format for output files
-	language_conversion.py: Outputs map for converting symbols between languages
+    read_referencerc.py: Sets default file path and file format for output files
+    language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
-	Updated 07/2019: modifications for python3 string compatibility
-	Updated 06/2018: added DOI search using the -D or --doi options
-	Updated 11/2017: added export command to print matches to a single file
-	Updated 10/2017: use data path and data file format from referencerc file
-	Updated 07/2017: print number of matching articles in search query
-	Updated 06/2017: added webbrowser to open the webpage of found articles
-	Written 06/2017
+    Updated 07/2019: modifications for python3 string compatibility
+    Updated 06/2018: added DOI search using the -D or --doi options
+    Updated 11/2017: added export command to print matches to a single file
+    Updated 10/2017: use data path and data file format from referencerc file
+    Updated 07/2017: print number of matching articles in search query
+    Updated 06/2017: added webbrowser to open the webpage of found articles
+    Written 06/2017
 """
 from __future__ import print_function
 
@@ -51,166 +51,166 @@ filepath = os.path.dirname(os.path.abspath(filename))
 #-- Reads bibtex files for each article stored in the working directory for
 #-- keywords, authors, journal, etc
 def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
-	OPEN=False, WEBPAGE=False, EXPORT=None):
-	#-- get reference filepath and reference format from referencerc file
-	datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
-	#-- bibtex fields to be printed in the output file
-	bibtex_field_types = ['address','affiliation','annote','author',
-		'booktitle','chapter','crossref','doi','edition','editor',
-		'howpublished','institution','isbn','issn','journal','key',
-		'keywords','month','note','number','organization','pages',
-		'publisher','school','series','title','type','url','volume','year']
-	field_regex = '[\s]?(' + '|'.join([i for i in bibtex_field_types]) + \
-		')[\s]?\=[\s]?[\{]?[\{]?(.*?)[\}]?[\}]?[\,]?[\s]?\n'
-	R1 = re.compile(field_regex, flags=re.IGNORECASE)
+    OPEN=False, WEBPAGE=False, EXPORT=None):
+    #-- get reference filepath and reference format from referencerc file
+    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    #-- bibtex fields to be printed in the output file
+    bibtex_field_types = ['address','affiliation','annote','author',
+        'booktitle','chapter','crossref','doi','edition','editor',
+        'howpublished','institution','isbn','issn','journal','key',
+        'keywords','month','note','number','organization','pages',
+        'publisher','school','series','title','type','url','volume','year']
+    field_regex = '[\s]?(' + '|'.join([i for i in bibtex_field_types]) + \
+        ')[\s]?\=[\s]?[\{]?[\{]?(.*?)[\}]?[\}]?[\,]?[\s]?\n'
+    R1 = re.compile(field_regex, flags=re.IGNORECASE)
 
-	#-- compile regular expression operators for input search terms
-	if AUTHOR and FIRST:
-		R2 = re.compile('^'+'|'.join(AUTHOR), flags=re.IGNORECASE)
-	elif AUTHOR:
-		R2 = re.compile('|'.join(AUTHOR), flags=re.IGNORECASE)
-	if JOURNAL:
-		R3 = re.compile('|'.join(JOURNAL), flags=re.IGNORECASE)
-	if KEYWORDS:
-		R4 = re.compile('|'.join(KEYWORDS), flags=re.IGNORECASE)
+    #-- compile regular expression operators for input search terms
+    if AUTHOR and FIRST:
+        R2 = re.compile('^'+'|'.join(AUTHOR), flags=re.IGNORECASE)
+    elif AUTHOR:
+        R2 = re.compile('|'.join(AUTHOR), flags=re.IGNORECASE)
+    if JOURNAL:
+        R3 = re.compile('|'.join(JOURNAL), flags=re.IGNORECASE)
+    if KEYWORDS:
+        R4 = re.compile('|'.join(KEYWORDS), flags=re.IGNORECASE)
 
-	#-- if exporting matches to a single file or standard output (to terminal)
-	fid = open(os.path.expanduser(EXPORT), 'w') if EXPORT else sys.stdout
+    #-- if exporting matches to a single file or standard output (to terminal)
+    fid = open(os.path.expanduser(EXPORT), 'w') if EXPORT else sys.stdout
 
-	#-- find directories of years
-	regex_years = '|'.join(YEAR) if YEAR else '\d+'
-	years = [sd for sd in os.listdir(datapath) if re.match(regex_years,sd) and
-		os.path.isdir(os.path.join(datapath,sd))]
-	match_count = 0
-	query_count = 0
-	for Y in sorted(years):
-		#-- find author directories in year
-		authors = [sd for sd in os.listdir(os.path.join(datapath,Y)) if
-			os.path.isdir(os.path.join(datapath,Y,sd))]
-		for A in sorted(authors):
-			#-- find bibtex files
-			bibtex_files = [fi for fi in os.listdir(os.path.join(datapath,Y,A))
-				if re.match('(.*?)-(.*?).bib$',fi)]
-			#-- read each bibtex file
-			for fi in bibtex_files:
-				with open(os.path.join(datapath,Y,A,fi), 'r') as f:
-					bibtex_entry = f.read()
-				#-- extract bibtex fields
-				bibtex_field_entries = R1.findall(bibtex_entry)
-				current_entry = {}
-				for key,val in bibtex_field_entries:
-					#-- replace latex symbols with unicode characters
-					#-- 1: latex, 2: combining unicode, 3: unicode, 4: plain
-					if sys.version_info[0] == 2:
-						val = val.decode('unicode-escape')
-					for LV, CV, UV, PV in language_conversion():
-						val = val.replace(LV,CV)
-					#-- add to current entry dictionary
-					current_entry[key.lower()] = val
-				#-- use search terms to find journals
-				#-- Search bibtex author entries for AUTHOR
-				F1 = R2.search(current_entry['author']) if AUTHOR else True
-				#-- Search bibtex journal entries for JOURNAL
-				F2 = False if JOURNAL else True
-				if ('journal' in current_entry.keys() and JOURNAL):
-					F2 = R3.search(current_entry['journal'])
-				#-- Search bibtex title entries for KEYWORDS
-				F3 = R4.search(current_entry['title']) if KEYWORDS else True
-				#-- Search bibtex keyword entries for KEYWORDS
-				F4 = False if KEYWORDS else True
-				if ('keywords' in current_entry.keys() and KEYWORDS):
-					F4 = R4.search(current_entry['keywords'])
-				#-- Search bibtex DOI entries for a specific set of DOI's
-				F5 = False if DOI else True
-				if ('doi' in current_entry.keys() and DOI):
-					F5 = current_entry['doi'] in DOI
-				#-- print the complete bibtex entry if search was found
-				if bool(F1) & bool(F2) & (bool(F3) | bool(F4)) & bool(F5):
-					print(bibtex_entry, file=fid)
-					file_opener(os.path.join(datapath,Y,A,fi)) if OPEN else None
-					#-- URL to open if WEBPAGE (from url or using doi)
-					if 'url' in current_entry.keys():
-						URL = current_entry['url']
-					elif 'doi' in current_entry.keys():
-						URL = 'https://doi.org/{0}'.format(current_entry['doi'])
-					#-- Open URL in a new tab, if browser window is already open
-					webbrowser.open_new_tab(URL) if (WEBPAGE and URL) else None
-					#-- add to total match count
-					match_count += 1
-				#-- add to total query count
-				query_count += 1
-	#-- print the number of matching and number of queried references
-	args = (match_count, query_count)
-	print('Matching references = {0:d} out of {1:d} queried'.format(*args))
-	#-- close the exported bibtex file
-	fid.close() if EXPORT else None
+    #-- find directories of years
+    regex_years = '|'.join(YEAR) if YEAR else '\d+'
+    years = [sd for sd in os.listdir(datapath) if re.match(regex_years,sd) and
+        os.path.isdir(os.path.join(datapath,sd))]
+    match_count = 0
+    query_count = 0
+    for Y in sorted(years):
+        #-- find author directories in year
+        authors = [sd for sd in os.listdir(os.path.join(datapath,Y)) if
+            os.path.isdir(os.path.join(datapath,Y,sd))]
+        for A in sorted(authors):
+            #-- find bibtex files
+            bibtex_files = [fi for fi in os.listdir(os.path.join(datapath,Y,A))
+                if re.match('(.*?)-(.*?).bib$',fi)]
+            #-- read each bibtex file
+            for fi in bibtex_files:
+                with open(os.path.join(datapath,Y,A,fi), 'r') as f:
+                    bibtex_entry = f.read()
+                #-- extract bibtex fields
+                bibtex_field_entries = R1.findall(bibtex_entry)
+                current_entry = {}
+                for key,val in bibtex_field_entries:
+                    #-- replace latex symbols with unicode characters
+                    #-- 1: latex, 2: combining unicode, 3: unicode, 4: plain
+                    if sys.version_info[0] == 2:
+                        val = val.decode('unicode-escape')
+                    for LV, CV, UV, PV in language_conversion():
+                        val = val.replace(LV,CV)
+                    #-- add to current entry dictionary
+                    current_entry[key.lower()] = val
+                #-- use search terms to find journals
+                #-- Search bibtex author entries for AUTHOR
+                F1 = R2.search(current_entry['author']) if AUTHOR else True
+                #-- Search bibtex journal entries for JOURNAL
+                F2 = False if JOURNAL else True
+                if ('journal' in current_entry.keys() and JOURNAL):
+                    F2 = R3.search(current_entry['journal'])
+                #-- Search bibtex title entries for KEYWORDS
+                F3 = R4.search(current_entry['title']) if KEYWORDS else True
+                #-- Search bibtex keyword entries for KEYWORDS
+                F4 = False if KEYWORDS else True
+                if ('keywords' in current_entry.keys() and KEYWORDS):
+                    F4 = R4.search(current_entry['keywords'])
+                #-- Search bibtex DOI entries for a specific set of DOI's
+                F5 = False if DOI else True
+                if ('doi' in current_entry.keys() and DOI):
+                    F5 = current_entry['doi'] in DOI
+                #-- print the complete bibtex entry if search was found
+                if bool(F1) & bool(F2) & (bool(F3) | bool(F4)) & bool(F5):
+                    print(bibtex_entry, file=fid)
+                    file_opener(os.path.join(datapath,Y,A,fi)) if OPEN else None
+                    #-- URL to open if WEBPAGE (from url or using doi)
+                    if 'url' in current_entry.keys():
+                        URL = current_entry['url']
+                    elif 'doi' in current_entry.keys():
+                        URL = 'https://doi.org/{0}'.format(current_entry['doi'])
+                    #-- Open URL in a new tab, if browser window is already open
+                    webbrowser.open_new_tab(URL) if (WEBPAGE and URL) else None
+                    #-- add to total match count
+                    match_count += 1
+                #-- add to total query count
+                query_count += 1
+    #-- print the number of matching and number of queried references
+    args = (match_count, query_count)
+    print('Matching references = {0:d} out of {1:d} queried'.format(*args))
+    #-- close the exported bibtex file
+    fid.close() if EXPORT else None
 
 #-- PURPOSE: platform independent file opener
 def file_opener(filename):
-	if (sys.platform == "win32"):
-		os.startfile(filename, "explore")
-	elif (sys.platform == "darwin"):
-		subprocess.call(["open", "-R", filename])
-	else:
-		subprocess.call(["xdg-open", filename])
+    if (sys.platform == "win32"):
+        os.startfile(filename, "explore")
+    elif (sys.platform == "darwin"):
+        subprocess.call(["open", "-R", filename])
+    else:
+        subprocess.call(["xdg-open", filename])
 
 #-- PURPOSE: help module to describe the optional input parameters
 def usage():
-	print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-	print(' -A X, --author=X\tAuthor of publications to search')
-	print(' -F, --first\t\tSearch only first authors')
-	print(' -J X, --journal=X\tPublication journals to search')
-	print(' -Y X, --year=X\t\tYears of publication to search')
-	print(' -K X, --keyword=X\tKeywords to search')
-	print(' -D X, --doi=X\t\tSearch for a specific set of DOIs')
-	print(' -O, --open\t\tOpen publication directory with found matches')
-	print(' -W, --webpage\t\tOpen publication webpage with found matches')
-	print(' -E X, --export=X\tExport found matches to a single bibtex file\n')
+    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
+    print(' -A X, --author=X\tAuthor of publications to search')
+    print(' -F, --first\t\tSearch only first authors')
+    print(' -J X, --journal=X\tPublication journals to search')
+    print(' -Y X, --year=X\t\tYears of publication to search')
+    print(' -K X, --keyword=X\tKeywords to search')
+    print(' -D X, --doi=X\t\tSearch for a specific set of DOIs')
+    print(' -O, --open\t\tOpen publication directory with found matches')
+    print(' -W, --webpage\t\tOpen publication webpage with found matches')
+    print(' -E X, --export=X\tExport found matches to a single bibtex file\n')
 
 #-- main program that calls search_references()
 def main():
-	short_options = 'hA:FJ:Y:K:D:OWE:'
-	long_options = ['help','author=','first','journal=','year=','keyword=',
-		'doi=','open','webpage','export=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],short_options,long_options)
-	#-- default: none
-	AUTHOR = None
-	FIRST = False
-	JOURNAL = None
-	YEAR = None
-	KEYWORDS = None
-	DOI = None
-	OPEN = False
-	WEBPAGE = False
-	EXPORT = None
-	#-- for each input argument
-	for opt, arg in optlist:
-		if opt in ('-h','--help'):
-			usage()
-			sys.exit()
-		elif opt in ('-A','--author'):
-			AUTHOR = arg.split(',')
-		elif opt in ('-F','--first'):
-			FIRST = True
-		elif opt in ('-J','--journal'):
-			JOURNAL = arg.split(',')
-		elif opt in ('-Y','--year'):
-			YEAR = arg.split(',')
-		elif opt in ('-K','--keyword'):
-			KEYWORDS = arg.split(',')
-		elif opt in ('-D','--doi'):
-			DOI = arg.split(',')
-		elif opt in ('-O','--open'):
-			OPEN = True
-		elif opt in ('-W','--webpage'):
-			WEBPAGE = True
-		elif opt in ('-E','--export'):
-			EXPORT = arg
+    short_options = 'hA:FJ:Y:K:D:OWE:'
+    long_options = ['help','author=','first','journal=','year=','keyword=',
+        'doi=','open','webpage','export=']
+    optlist,arglist = getopt.getopt(sys.argv[1:],short_options,long_options)
+    #-- default: none
+    AUTHOR = None
+    FIRST = False
+    JOURNAL = None
+    YEAR = None
+    KEYWORDS = None
+    DOI = None
+    OPEN = False
+    WEBPAGE = False
+    EXPORT = None
+    #-- for each input argument
+    for opt, arg in optlist:
+        if opt in ('-h','--help'):
+            usage()
+            sys.exit()
+        elif opt in ('-A','--author'):
+            AUTHOR = arg.split(',')
+        elif opt in ('-F','--first'):
+            FIRST = True
+        elif opt in ('-J','--journal'):
+            JOURNAL = arg.split(',')
+        elif opt in ('-Y','--year'):
+            YEAR = arg.split(',')
+        elif opt in ('-K','--keyword'):
+            KEYWORDS = arg.split(',')
+        elif opt in ('-D','--doi'):
+            DOI = arg.split(',')
+        elif opt in ('-O','--open'):
+            OPEN = True
+        elif opt in ('-W','--webpage'):
+            WEBPAGE = True
+        elif opt in ('-E','--export'):
+            EXPORT = arg
 
-	#-- search references for requested fields
-	search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=FIRST,
-		OPEN=OPEN, WEBPAGE=WEBPAGE, EXPORT=EXPORT)
+    #-- search references for requested fields
+    search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=FIRST,
+        OPEN=OPEN, WEBPAGE=WEBPAGE, EXPORT=EXPORT)
 
 #-- run main program
 if __name__ == '__main__':
-	main()
+    main()
