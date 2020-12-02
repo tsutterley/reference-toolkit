@@ -18,7 +18,7 @@ Formats `*.ris` and `*.bib` bibliography files into a standard format
 
 `gen_citekeys.py`: Generates Papers2-like cite keys for BibTeX  
 ```bash
-python gen_citekeys.py --author=Rignot --year=2008 --doi="10.1038/ngeo102"
+python gen_citekeys.py --author Rignot --year 2008 --doi "10.1038/ngeo102"
 ```
 `smart_citekeys.py`: Creates Papers2-like cite keys using information from the [crossref REST API](https://api.crossref.org/)  
 ```bash
@@ -40,24 +40,24 @@ python ris_to_bibtex.py -C -O example.ris
 
 `copy_journal_article.py`: Copies a journal article and supplements from a website to the reference directory  
 ```bash
-python copy_journal_articles.py --author=Rignot --year=2008 \
-	--journal="Nature Geoscience" --volume=1 \
+python copy_journal_articles.py --author Rignot --year 2008 \
+	--journal "Nature Geoscience" --volume 1 \
 	https://www.nature.com/ngeo/journal/v1/n2/pdf/ngeo102.pdf
 ```
 `smart_copy_articles.py`: Copies a journal article and supplements from a website to the reference directory using the [crossref REST API](https://api.crossref.org/)  
 ```bash
-python smart_copy_articles.py --doi=10.1038/ngeo102 \
+python smart_copy_articles.py --doi 10.1038/ngeo102 \
 	https://www.nature.com/ngeo/journal/v1/n2/pdf/ngeo102.pdf
 ```
 
 `move_journal_article.py`: Moves a journal article and supplements from a local directory to the reference directory  
 ```bash
-python move_journal_article.py --author=Rignot --year=2008 \
-	--journal="Nature Geoscience" --volume=1 ~/Downloads/ngeo102.pdf
+python move_journal_article.py --author Rignot --year 2008 \
+	--journal "Nature Geoscience" --volume 1 ~/Downloads/ngeo102.pdf
 ```
 `smart_move_articles.py`: Copies a journal article and supplements from a local directory to the reference directory using the [crossref REST API](https://api.crossref.org/)  
 ```bash
-python smart_move_articles.py --doi=10.1038/ngeo102 ~/Downloads/ngeo102.pdf
+python smart_move_articles.py --doi 10.1038/ngeo102 ~/Downloads/ngeo102.pdf
 ```
 
 `search_references.py`: Searches all managed BibTeX files for keywords, authors and/or journal  
@@ -72,7 +72,7 @@ python open_doi.py 10.1038/ngeo102
 
 `export_library.py`: Exports library of individual BibTeX files into a single sorted BibTeX file  
 ```bash
-python export_library.py  --sort=author --export=bibtex_library.bib
+python export_library.py  --sort author --export bibtex_library.bib
 ```
 `sync_library.py`: Syncs complete library with a different directory  
 ```bash

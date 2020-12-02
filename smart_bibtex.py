@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (07/2018)
-Creates a entry using information from crossref.org
+smart_bibtex.py (12/2020)
+Creates a bibtex entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
 https://github.com/CrossRef/rest-api-doc
@@ -11,7 +11,6 @@ CALLING SEQUENCE:
 
 COMMAND LINE OPTIONS:
     -O, --output: Output to bibtex files (default to terminal)
-    -T, --type: pubication type (print or electronic).  Prefer print
     -V, --verbose: Verbose output of output files (if output)
 
 PYTHON DEPENDENCIES:
@@ -30,6 +29,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 07/2018: using python3 urllib.request with future library
     Updated 11/2017: remove line skips and series of whitespace from title
     Updated 10/2017: if --output place file in reference directory
@@ -45,14 +45,18 @@ import future.standard_library
 import sys
 import os
 import re
+import ssl
 import json
-import getopt
 import inspect
+import datetime
+import argparse
+import posixpath
 from gen_citekeys import gen_citekey
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
 with future.standard_library.hooks():
     import urllib.request
+    import urllib.parse
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -61,9 +65,10 @@ filepath = os.path.dirname(os.path.abspath(filename))
 #-- PURPOSE: check internet connection and URL
 def check_connection(doi):
     #-- attempt to connect to remote url
-    remote_url = 'https://api.crossref.org/works/{0}'.format(doi)
+    remote_url = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(doi))
     try:
-        urllib.request.urlopen(remote_url,timeout=20)
+        urllib.request.urlopen(remote_url,timeout=20,context=ssl.SSLContext())
     except urllib.request.HTTPError:
         raise RuntimeError('Check URL: {0}'.format(remote_url))
     except urllib.request.URLError:
@@ -72,13 +77,16 @@ def check_connection(doi):
         return True
 
 #-- PURPOSE: create a formatted bibtex entry for a doi
-def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
+def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     #-- get reference filepath and reference format from referencerc file
     datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
     #-- open connection with crossref.org for DOI
-    crossref = 'https://api.crossref.org/works/{0}'.format(doi)
+    crossref = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(doi))
+    context = ssl.SSLContext()
     request = urllib.request.Request(url=crossref)
-    resp = json.loads(urllib.request.urlopen(request, timeout=40).read())
+    response = urllib.request.urlopen(request,timeout=60,context=context)
+    resp = json.loads(response.read())
 
     #-- sort bibtex fields in output
     bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,
@@ -119,17 +127,21 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
         current_authors.append(u'{0}, {1}'.format(family, given))
 
     #-- get publication date (prefer date when in print)
-    if TYPE == 'print' and 'published-print' in resp['message'].keys():
-        date_parts, = resp['message']['published-print']['date-parts']
-    elif TYPE == 'electronic' and 'published-online' in resp['message'].keys():
-        date_parts, = resp['message']['published-online']['date-parts']
+    for P,T in zip(['published-print','published-online'],['print','electronic']):
+        try:
+            date_parts, = resp['message'][P]['date-parts']
+        except:
+            pass
+        else:
+            break
+
     #-- extract year from date parts and convert to string
     current_entry['year'] = '{0:4d}'.format(date_parts[0])
     #-- months of the year
-    M=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
     if (len(date_parts) > 1):
         #-- month = second entry
-        current_entry['month'] = M[date_parts[1]-1]
+        dt = datetime.datetime.strptime('{0:02d}'.format(date_parts[1]),'%m')
+        current_entry['month'] = dt.strftime('%b').lower()
 
     #-- get journal name and article title
     current_entry['journal'], = resp['message']['container-title']
@@ -155,7 +167,7 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
     #-- get ISSN (prefer issn for print)
     if 'issn-type' in resp['message'].keys():
         current_entry['issn'], = [i['value'] for i in
-            resp['message']['issn-type'] if i['type'] == TYPE]
+            resp['message']['issn-type'] if i['type'] == T]
     #-- get publisher
     if 'publisher' in resp['message'].keys():
         current_entry['publisher'] = resp['message']['publisher']
@@ -235,37 +247,30 @@ def smart_bibtex(doi, OUTPUT=False, TYPE='print', VERBOSE=False):
     if OUTPUT:
         fid.close()
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -O, --output\tOutput to bibtex files (default to terminal)')
-    print(' --T, --type: pubication type (print or electronic)')
-    print(' -V, --verbose\tVerbose output of output files\n')
-
 #-- main program that calls smart_bibtex()
 def main():
-    long_options = ['help','output','type=','verbose']
-    optlist,arglist=getopt.getopt(sys.argv[1:],'hOT:V',long_options)
-    #-- command line arguments
-    OUTPUT = False
-    TYPE = 'print'
-    VERBOSE = False
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-O','--output'):
-            OUTPUT = True
-        elif opt in ('-T','--type'):
-            TYPE = arg.lower()
-        elif opt in ('-V','--verbose'):
-            VERBOSE = True
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Creates a bibtex entry using information from
+            crossref.org
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('doi',
+        type=str, nargs='+',
+        help='Digital Object Identifier (DOI) of the publication')
+    parser.add_argument('--output','-O',
+        default=False, action='store_true',
+        help='Output to bibtex file')
+    parser.add_argument('--verbose','-V',
+        default=False, action='store_true',
+        help='Verbose output of output files')
+    args = parser.parse_args()
 
     #-- run for each DOI entered after the program
-    for DOI in arglist:
+    for DOI in args.doi:
         if check_connection(DOI):
-            smart_bibtex(DOI, OUTPUT=OUTPUT, TYPE=TYPE, VERBOSE=VERBOSE)
+            smart_bibtex(DOI, OUTPUT=args.output, VERBOSE=args.verbose)
 
 #-- run main program
 if __name__ == '__main__':

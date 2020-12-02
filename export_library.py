@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 u"""
-export_library.py (02/2018)
+export_library.py (12/2020)
 Exports library of individual BibTeX files into a single sorted BibTeX file
 
 CALLING SEQUENCE:
-    python export_library.py --sort=author --export=bibtex_library.bib
+    python export_library.py --sort author --export bibtex_library.bib
 
 COMMAND LINE OPTIONS:
-    -S X, --sort=X: sort output entries by
+    -S X, --sort X: sort output entries by
         year: Year of publication
         author: First Author Lastname (default)
         type: BibTeX Entry Types (article, book, etc)
-    -E X, --export=X: output BibTeX filename (default: standard output)
+    -E X, --export X: output BibTeX filename (default: standard output)
 
 PROGRAM DEPENDENCIES:
     read_referencerc.py: Sets default file path and file format for output files
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Written 02/2018
 """
 from __future__ import print_function
@@ -25,8 +26,8 @@ import sys
 import re
 import os
 import time
-import getopt
 import inspect
+import argparse
 from read_referencerc import read_referencerc
 
 #-- current file path for the program
@@ -100,35 +101,28 @@ def export_library(SORT=None, EXPORT=None):
     #-- close the exported BibTeX file
     fid.close() if EXPORT else None
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -S X, --sort=X\t\tSort output entries by:')
-    print('\tyear: Year of publication')
-    print('\tauthor: First Author Lastname (default)')
-    print('\ttype: BibTeX Entry Type (article, book, etc)')
-    print(' -E X, --export=X\tOutput BibTeX filename\n')
-
 #-- main program that calls export_library()
 def main():
-    long_options = ['help','sort=','export=']
-    optlist,arglist = getopt.getopt(sys.argv[1:],'hS:E:',long_options)
-
-    #-- default: sort by author and print to standard output
-    SORT = 'author'
-    EXPORT = None
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-S','--sort'):
-            SORT = arg
-        elif opt in ('-E','--export'):
-            EXPORT = arg
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Exports library of individual BibTeX files into a single
+            sorted BibTeX file
+            """
+    )
+    #-- command line parameters
+    #-- year: Year of publication
+    #-- author: First Author Lastname (default)
+    #-- type: BibTeX Entry Type (article, book, etc)
+    parser.add_argument('--sort','-S',
+        type=str, default='author', choices=('author','type','year'),
+        help='Sort output BibTeX library')
+    parser.add_argument('--export','-E',
+        type=lambda p: os.path.abspath(os.path.expanduser(p)),
+        help='Output BibTeX filename')
+    args = parser.parse_args()
 
     #-- export references to a single file
-    export_library(SORT=SORT, EXPORT=EXPORT)
+    export_library(SORT=args.sort, EXPORT=args.export)
 
 #-- run main program
 if __name__ == '__main__':

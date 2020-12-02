@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (07/2019)
+ris_to_bibtex.py (12/2020)
 Converts RIS bibliography files into bibtex files with Universal citekeys
     https://en.wikipedia.org/wiki/RIS_(file_format)
 
@@ -22,6 +22,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: added editor fields as valid RIS entries with format FN,GN
     Updated 04/2018: don't use abbreviations for valid journal names
@@ -40,8 +41,9 @@ from __future__ import print_function
 import sys
 import re
 import os
-import getopt
 import inspect
+import argparse
+import datetime
 from gen_citekeys import gen_citekey
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
@@ -70,8 +72,6 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- regular expression pattern to extract doi from webpages or "doi:"
     doi_regex = '(doi\:[\s]?|http[s]?\:\/\/(dx\.)?doi\.org\/)?(10\.(.*?))$'
     R2 = re.compile(doi_regex, flags=re.IGNORECASE)
-    #-- months of the year
-    M=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
     #-- sort bibtex fields in output
     bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,
         'booktitle':12,'chapter':13,'crossref':27,'doi':10,'edition':19,'editor':21,
@@ -155,9 +155,11 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
             cal_date = [int(d) for d in re.findall('\d+',RIS_value)]
             #-- year = first entry
             current_entry['year'] = '{0:4d}'.format(cal_date[0])
+            #-- months of the year
             if (len(cal_date) > 1):
                 #-- month = second entry
-                current_entry['month'] = M[cal_date[1]-1]
+                dt=datetime.datetime.strptime('{0:02d}'.format(cal_date[1]),'%m')
+                current_entry['month'] = dt.strftime('%b').lower()
         elif (RIS_field == 'SP') and bool(re.search('\d+',RIS_value)):
             #-- add starting page to current_pages array
             pages = [int(p) for p in re.findall('\d+',RIS_value)]
@@ -266,42 +268,42 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     if OUTPUT:
         fid.close()
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -O, --output\tOutput to bibtex files (default to terminal)')
-    print(' -C, --cleanup\t\tRemove the input file after conversion')
-    print(' -V, --verbose\tVerbose output of input and output files\n')
-
 #-- main program that calls ris_to_bibtex()
 def main():
     #-- Read the system arguments listed after the program
-    long_options = ['help','output','cleanup','verbose']
-    optlist,arglist=getopt.getopt(sys.argv[1:],'hOCV',long_options)
-    #-- command line arguments
-    OUTPUT = False
-    CLEANUP = False
-    VERBOSE = False
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-O','--output'):
-            OUTPUT = True
-        elif opt in ('-V','--verbose'):
-            VERBOSE = True
-        elif opt in ('-C','--cleanup'):
-            CLEANUP = True
+    parser = argparse.ArgumentParser(
+        description="""Converts RIS bibliography files into bibtex files with
+            Universal citekeys
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('infile',
+        type=lambda p: os.path.abspath(os.path.expanduser(p)), nargs='+',
+        help='RIS file to be copied into the reference path')
+    parser.add_argument('--output','-O',
+        default=False, action='store_true',
+        help='Output to bibtex files')
+    parser.add_argument('--cleanup','-C',
+        default=False, action='store_true',
+        help='Remove input RIS file after conversion')
+    parser.add_argument('--verbose','-V',
+        default=False, action='store_true',
+        help='Verbose output of input and output files')
+    args = parser.parse_args()
 
     #-- for each file entered
-    for FILE in arglist:
+    for FILE in args.infile:
         #-- run for the input file
-        print(os.path.basename(FILE)) if VERBOSE else None
-        with open(os.path.expanduser(FILE),'r') as f:
-            ris_to_bibtex(f.read().splitlines(), OUTPUT=OUTPUT, VERBOSE=VERBOSE)
-        #-- remove the input file
-        os.remove(FILE) if CLEANUP else None
+        print(os.path.basename(FILE)) if args.verbose else None
+        with open(FILE,'r') as f:
+            file_contents = f.read().splitlines()
+        try:
+            ris_to_bibtex(file_contents,OUTPUT=args.output,VERBOSE=args.verbose)
+        except:
+            pass
+        else:
+            #-- remove the input file
+            os.remove(FILE) if args.cleanup else None
 
 #-- run main program
 if __name__ == '__main__':

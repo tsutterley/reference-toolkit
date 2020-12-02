@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 u"""
-move_journal_articles.py (07/2019)
-Moves a journal article and supplements to the references local directory
+move_journal_articles.py (12/2020)
+Moves journal articles and supplements to the reference local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
     file (or any other file if supplement) to the reference path
 
 CALLING SEQUENCE:
-    python move_journal_articles.py --author=Rignot --year=2008 \
-        --journal="Nature Geoscience" --volume=1 ~/Downloads/ngeo102.pdf
+    python move_journal_articles.py --author Rignot --year 2008 \
+        --journal "Nature Geoscience" --volume 1 ~/Downloads/ngeo102.pdf
 
     will move the file to 2008/Rignot/Rignot_Nat._Geosci.-1_2008.pdf
 
@@ -16,13 +16,13 @@ INPUTS:
     file to be moved into the reference path
 
 COMMAND LINE OPTIONS:
-    -A X, --author=X: lead author of publications
-    -J X, --journal=X: corresponding publication journal
-    -Y X, --year=X: corresponding publication year
-    -V X, --volume=X: corresponding publication volume
-    -N X, --number=X: Corresponding publication number
+    -A X, --author X: lead author of publication
+    -J X, --journal X: corresponding publication journal
+    -Y X, --year X: corresponding publication year
+    -V X, --volume X: corresponding publication volume
+    -N X, --number X: Corresponding publication number
     -S, --supplement: file is a supplemental file
-    -C, --cleanup: Remove the input file after moving
+    -C, --cleanup: Remove input file after moving
 
 PROGRAM DEPENDENCIES:
     read_referencerc.py: Sets default file path and file format for output files
@@ -35,6 +35,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: tilde-expansion of input journal file
     Updated 10/2017: use data path and data file format from referencerc file
@@ -47,7 +48,7 @@ import os
 import re
 import shutil
 import inspect
-import getopt
+import argparse
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
 
@@ -132,60 +133,38 @@ def create_unique_filename(filename):
         filename = u'{0}-{1:d}{2}'.format(fileBasename, counter, fileExtension)
         counter += 1
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -A X, --author=X\tAuthors of publications')
-    print(' -J X, --journal=X\tCorresponding publication journal')
-    print(' -Y X, --year=X\t\tCorresponding publication year')
-    print(' -V X, --volume=X\tCorresponding publication volume')
-    print(' -N X, --number=X\tCorresponding publication number')
-    print(' -S, --supplement\tFile is a supplemental file')
-    print(' -C, --cleanup\t\tRemove the input file after moving\n')
-
 #-- main program that calls move_journal_articles()
 def main():
-    long_options = ['help','author=','journal=','year=','volume=','number=',
-        'supplement','cleanup']
-    optlist,arglist=getopt.getopt(sys.argv[1:],'hA:J:Y:V:N:SC',long_options)
-    #-- default: none
-    AUTHOR = []
-    JOURNAL = []
-    YEAR = []
-    VOLUME = None
-    NUMBER = None
-    SUPPLEMENT = False
-    CLEANUP = False
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-A','--author'):
-            AUTHOR = arg.split(',')
-        elif opt in ('-J','--journal'):
-            JOURNAL = arg.split(',')
-        elif opt in ('-Y','--year'):
-            YEAR = arg.split(',')
-        elif opt in ('-V','--volume'):
-            VOLUME = arg.split(',')
-        elif opt in ('-N','--number'):
-            NUMBER = arg.split(',')
-        elif opt in ('-S','--supplement'):
-            SUPPLEMENT = True
-        elif opt in ('-C','--cleanup'):
-            CLEANUP = True
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Moves a journal article to the reference local directory
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('infile',
+        type=lambda p: os.path.abspath(os.path.expanduser(p)),
+        help='article file to be copied into the reference path')
+    parser.add_argument('--author','-A',
+        type=str, help='Lead author of publication')
+    parser.add_argument('--journal','-J',
+        type=str, help='Corresponding publication journal')
+    parser.add_argument('--year','-Y',
+        type=str, help='Corresponding publication year')
+    parser.add_argument('--volume','-V',
+        type=str, default='', help='Corresponding publication volume')
+    parser.add_argument('--number','-N',
+        type=str, default='', help='Corresponding publication number')
+    parser.add_argument('--supplement','-S',
+        default=False, action='store_true',
+        help='File is an article supplement')
+    parser.add_argument('--cleanup','-C',
+        default=False, action='store_true',
+        help='Remove input file after moving')
+    args = parser.parse_args()
 
-    #-- if no volume for articles
-    if VOLUME is None:
-        VOLUME = ['']*len(arglist)
-    #-- if no number for articles
-    if NUMBER is None:
-        NUMBER = ['']*len(arglist)
-
-    #-- run for each entered file
-    for F,A,J,Y,V,N in zip(arglist,AUTHOR,JOURNAL,YEAR,VOLUME,NUMBER):
-        move_journal_articles(os.path.expanduser(F),A,J,Y,V,N,SUPPLEMENT,CLEANUP)
+    #-- move article file to reference directory
+    move_journal_articles(args.infile, args.author, args.journal, args.year,
+        args.volume, args.number, args.supplement, args.cleanup)
 
 #-- run main program
 if __name__ == '__main__':

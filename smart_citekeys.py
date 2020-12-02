@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (07/2019)
+smart_citekeys.py (12/2020)
 Generates Papers2-like cite keys for BibTeX using information from crossref.org
 
 Enter DOI's of journals to generate "universal" keys
 
 CALLING SEQUENCE:
-    python gen_citekeys.py "11.1234/abc.222.987654"
-    will result in Smith:1997ct as the citekey
+    python smart_citekeys.py "10.1038/ngeo102"
+    will result in Rignot:2008ct as the citekey
 
 PYTHON DEPENDENCIES:
     future: Compatibility layer between Python 2 and Python 3
@@ -22,6 +22,7 @@ NOTES:
     Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: using python3 urllib.request with future library
     Updated 10/2017: use modulus of 0xffffffff (4294967295)
@@ -39,19 +40,24 @@ import future.standard_library
 import sys
 import os
 import re
+import ssl
 import math
 import json
 import binascii
+import argparse
+import posixpath
 from language_conversion import language_conversion
 with future.standard_library.hooks():
     import urllib.request
+    import urllib.parse
 
 #-- PURPOSE: check internet connection and URL
 def check_connection(doi):
     #-- attempt to connect to remote url
-    remote_url = 'https://api.crossref.org/works/{0}'.format(doi)
+    remote_url = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(doi))
     try:
-        urllib.request.urlopen(remote_url,timeout=20)
+        urllib.request.urlopen(remote_url,timeout=20,context=ssl.SSLContext())
     except urllib.request.HTTPError:
         raise RuntimeError('Check URL: {0}'.format(remote_url))
     except urllib.request.URLError:
@@ -62,9 +68,11 @@ def check_connection(doi):
 #-- PURPOSE: create a Papers2-like cite key using the DOI
 def smart_citekey(doi):
     #-- open connection with crossref.org for DOI
-    crossref = 'https://api.crossref.org/works/{0}'.format(doi)
-    request = urllib.request.Request(url=crossref)
-    resp = json.loads(urllib.request.urlopen(request, timeout=40).read())
+    crossref=posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(doi))
+    request=urllib.request.Request(url=crossref)
+    response=urllib.request.urlopen(request,timeout=60,context=ssl.SSLContext())
+    resp=json.loads(response.read())
 
     #-- get author and replace unicode characters in author with plain text
     author = resp['message']['author'][0]['family']
@@ -99,11 +107,23 @@ def smart_citekey(doi):
 
 #-- main program that calls smart_citekey()
 def main():
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Generates Papers2-like cite keys for BibTeX using
+            information from crossref.org
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('doi',
+        type=str, nargs='+',
+        help='Digital Object Identifier (DOI) of the publication')
+    args = parser.parse_args()
+
     #-- run for each DOI entered after the program
-    for doi in sys.argv[1:]:
+    for doi in args.doi:
         if check_connection(doi):
             citekey = smart_citekey(doi)
-        print(citekey)
+            print(citekey)
 
 #-- run main program
 if __name__ == '__main__':

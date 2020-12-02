@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-scp_library.py (02/2019)
+scp_library.py (12/2020)
 Exports complete library into a remote directory via scp
 Will only copy new or overwritten files by checking the last modified dates
 
@@ -15,7 +15,7 @@ COMMAND LINE OPTIONS:
     -L, --list: List files without transferring
     -C, --clobber: Overwrite existing data in transfer
     -V, --verbose: Print all transferred files
-    -M X, --mode=X: Permission mode of files transferred
+    -M X, --mode X: Permission mode of files transferred
 
 PYTHON DEPENDENCIES:
     paramiko: Native Python SSHv2 protocol library
@@ -30,19 +30,20 @@ PROGRAM DEPENDENCIES:
     read_referencerc.py: Sets default file path and file format for output files
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Written 02/2019
 """
-from __future__ import print_function
+from __future__ import print_function, division
 
 import sys
 import re
 import os
 import scp
 import stat
-import getopt
 import getpass
 import inspect
 import logging
+import argparse
 import builtins
 import paramiko
 import posixpath
@@ -238,45 +239,39 @@ def scp_pull_file(client, client_ftp, transfer_file, local_dir, remote_dir,
 
 #-- PURPOSE: rounds a number to an even number less than or equal to original
 def even(i):
-    return 2*int(i/2)
-
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -P, --pull\t\tTransfer files from external directory to library')
-    print(' -L, --list\t\tList files without transferring')
-    print(' -C, --clobber\t\tOverwrite existing data in transfer')
-    print(' -V, --verbose\t\tPrint all transferred files')
-    print(' -M X, --mode=X\t\tPermission mode of files transferred\n')
+    return 2*int(i//2)
 
 #-- main program that calls scp_library()
 def main():
-    long_options = ['help','pull','list','clobber','verbose','mode=']
-    optlist,arglist = getopt.getopt(sys.argv[1:],'hPLCVM:',long_options)
-    #-- command-line options
-    PULL = False
-    LIST = False
-    CLOBBER = False
-    VERBOSE = False
-    MODE = 0o775
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-P','--pull'):
-            PULL = True
-        elif opt in ('-L','--list'):
-            LIST = True
-        elif opt in ('-C','--clobber'):
-            CLOBBER = True
-        elif opt in ('-V','--verbose'):
-            VERBOSE = True
-        elif opt in ('-M','--mode'):
-            MODE = int(arg,8)
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Exports complete library into a remote directory via scp
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('remote',
+        type=str, nargs='+',
+        help='Remote reference directory')
+    parser.add_argument('--pull','-P',
+        default=False, action='store_true',
+        help='Transfer files from remote directory to library')
+    parser.add_argument('--list','-L',
+        default=False, action='store_true',
+        help='List files without transferring')
+    parser.add_argument('--clobber','-C',
+        default=False, action='store_true',
+        help='Overwrite existing files in transfer')
+    parser.add_argument('--verbose','-V',
+        default=False, action='store_true',
+        help='Print all transferred files')
+    #-- permissions mode of the local directories and files (number in octal)
+    parser.add_argument('--mode','-M',
+        type=lambda x: int(x,base=8), default=0o775,
+        help='Permission mode of directories and files transferred')
+    args = parser.parse_args()
 
     #-- for each system argument
-    for arg in arglist:
+    for arg in args.remote:
         #-- separate between remote hostname and remote path
         rx = re.compile('((.*?)[?=\@])?((.*?)[?=\:])(.*?)$',re.VERBOSE)
         USER,HOST,REMOTE = rx.match(arg).group(2,4,5)
@@ -302,13 +297,13 @@ def main():
         #-- open secure FTP client
         client_ftp = client.open_sftp()
         #-- verbosity settings
-        if VERBOSE or LIST:
+        if args.verbose or args.list:
             logging.getLogger("paramiko").setLevel(logging.WARNING)
             print('{0}@{1}:\n'.format(USER, HOST))
 
         #-- export references to a new directory
-        scp_library(client, client_ftp, REMOTE, PULL=PULL, LIST=LIST,
-            VERBOSE=VERBOSE, CLOBBER=CLOBBER, MODE=MODE)
+        scp_library(client, client_ftp, REMOTE, PULL=args.pull, LIST=args.list,
+            VERBOSE=args.verbose, CLOBBER=args.clobber, MODE=args.mode)
 
         #-- close the secure FTP server
         client_ftp.close()

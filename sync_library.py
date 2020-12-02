@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-sync_library.py (02/2019)
+sync_library.py (12/2020)
 Exports complete library into a new directory (such as a mounted-drive)
 Will only copy new or overwritten files by checking the last modified dates
 
@@ -15,23 +15,24 @@ COMMAND LINE OPTIONS:
     -L, --list: List files without transferring
     -C, --clobber: Overwrite existing data in transfer
     -V, --verbose: Print all transferred files
-    -M X, --mode=X: Permission mode of files transferred
+    -M X, --mode X: Permission mode of files transferred
 
 PROGRAM DEPENDENCIES:
     read_referencerc.py: Sets default file path and file format for output files
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 02/2019: added option list to only print the files to be transferred
     Written 02/2018
 """
-from __future__ import print_function
+from __future__ import print_function, division
 
 import sys
 import re
 import os
-import getopt
 import shutil
 import inspect
+import argparse
 from read_referencerc import read_referencerc
 
 #-- current file path for the program
@@ -125,51 +126,40 @@ def transfer_push_file(transfer_file, input_dir, output_dir, LIST=False,
 
 #-- PURPOSE: rounds a number to an even number less than or equal to original
 def even(i):
-    return 2*int(i/2)
-
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -P, --pull\t\tTransfer files from external directory to library')
-    print(' -L, --list\t\tList files without transferring')
-    print(' -C, --clobber\t\tOverwrite existing data in transfer')
-    print(' -V, --verbose\t\tPrint all transferred files')
-    print(' -M X, --mode=X\t\tPermission mode of files transferred\n')
+    return 2*int(i//2)
 
 #-- main program that calls sync_library()
 def main():
-    long_options = ['help','pull','list','clobber','verbose','mode=']
-    optlist,arglist = getopt.getopt(sys.argv[1:],'hPLCVM:',long_options)
-    #-- command-line options
-    PULL = False
-    LIST = False
-    CLOBBER = False
-    VERBOSE = False
-    MODE = 0o775
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-P','--pull'):
-            PULL = True
-        elif opt in ('-L','--list'):
-            LIST = True
-        elif opt in ('-C','--clobber'):
-            CLOBBER = True
-        elif opt in ('-V','--verbose'):
-            VERBOSE = True
-        elif opt in ('-M','--mode'):
-            MODE = int(arg,8)
-
-    #-- verify that an output directory was entered as a system argument
-    if not arglist:
-        raise Exception('No Directory Listed as System Argument')
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Exports complete library into a new directory
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('directory', default=os.getcwd,
+        type=lambda p: os.path.abspath(os.path.expanduser(p)),
+        help='External reference directory')
+    parser.add_argument('--pull','-P',
+        default=False, action='store_true',
+        help='Transfer files from external directory to library')
+    parser.add_argument('--list','-L',
+        default=False, action='store_true',
+        help='List files without transferring')
+    parser.add_argument('--clobber','-C',
+        default=False, action='store_true',
+        help='Overwrite existing files in transfer')
+    parser.add_argument('--verbose','-V',
+        default=False, action='store_true',
+        help='Print all transferred files')
+    #-- permissions mode of the local directories and files (number in octal)
+    parser.add_argument('--mode','-M',
+        type=lambda x: int(x,base=8), default=0o775,
+        help='Permission mode of directories and files transferred')
+    args = parser.parse_args()
 
     #-- export references to a new directory
-    for DIRECTORY in arglist:
-        sync_library(os.path.expanduser(DIRECTORY), PULL=PULL, LIST=LIST,
-            VERBOSE=VERBOSE, CLOBBER=CLOBBER, MODE=MODE)
+    sync_library(args.directory, PULL=args.pull, LIST=args.list,
+        VERBOSE=args.verbose, CLOBBER=args.clobber, MODE=args.mode)
 
 #-- run main program
 if __name__ == '__main__':

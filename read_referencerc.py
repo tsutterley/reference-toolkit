@@ -6,9 +6,9 @@ UPDATE HISTORY:
     Updated 02/2018: using str instead of unicode for python3 compatibility
     Written 10/2017
 """
+import os, re
 #-- PURPOSE: read referencerc file and extract parameters
 def read_referencerc(referencerc_file):
-    import os, re
     #-- variable with parameter definitions
     parameters = {}
     #-- Opening parameter file and assigning file ID (f)

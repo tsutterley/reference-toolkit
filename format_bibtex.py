@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (07/2019)
+format_bibtex.py (12/2020)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: format editor fields to be "family name, given name"
     Updated 04/2018: use regular expression for splitting between authors
@@ -39,8 +40,8 @@ from __future__ import print_function
 import sys
 import os
 import re
-import getopt
 import inspect
+import argparse
 from gen_citekeys import gen_citekey
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
@@ -195,7 +196,8 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     doi = bibtex_entry['doi'] if 'doi' in bibtex_entry.keys() else None
     title = bibtex_entry['title'] if 'title' in bibtex_entry.keys() else None
     #-- calculate the universal citekey
-    univ_key = gen_citekey(firstauthor,bibtex_entry['year'],doi,title)
+    univ_key = gen_citekey(firstauthor.decode('utf-8'),
+        bibtex_entry['year'],doi,title)
 
     #-- if printing to file: output bibtex file for author and year
     if OUTPUT:
@@ -231,42 +233,43 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     if OUTPUT:
         fid.close()
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -O, --output\tOutput to new bibtex file')
-    print(' -C, --cleanup\t\tRemove the input file after formatting')
-    print(' -V, --verbose\tVerbose output of input and output files\n')
-
 #-- main program that calls format_bibtex()
 def main():
     #-- Read the system arguments listed after the program
-    long_options = ['help','output','cleanup','verbose']
-    optlist,arglist=getopt.getopt(sys.argv[1:],'hOCV',long_options)
-    #-- command line arguments
-    OUTPUT = False
-    CLEANUP = False
-    VERBOSE = False
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-O','--output'):
-            OUTPUT = True
-        elif opt in ('-V','--verbose'):
-            VERBOSE = True
-        elif opt in ('-C','--cleanup'):
-            CLEANUP = True
+    parser = argparse.ArgumentParser(
+        description="""Reformats journal BibTeX files into a standard form with
+            Universal citekeys
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('infile',
+        type=lambda p: os.path.abspath(os.path.expanduser(p)), nargs='+',
+        help='BibTeX file to be copied into the reference path')
+    parser.add_argument('--output','-O',
+        default=False, action='store_true',
+        help='Output to bibtex files')
+    parser.add_argument('--cleanup','-C',
+        default=False, action='store_true',
+        help='Remove input BibTeX file after conversion')
+    parser.add_argument('--verbose','-V',
+        default=False, action='store_true',
+        help='Verbose output of input and output files')
+    args = parser.parse_args()
 
     #-- for each file entered
-    for FILE in arglist:
+    for FILE in args.infile:
         #-- run for the input file
-        print(os.path.basename(FILE)) if VERBOSE else None
-        with open(os.path.expanduser(FILE),'r') as f:
-            format_bibtex(re.sub('(\s+)\n','\n',f.read()), OUTPUT=OUTPUT, VERBOSE=VERBOSE)
-        #-- remove the input file
-        os.remove(FILE) if CLEANUP else None
+        print(os.path.basename(FILE)) if args.verbose else None
+        with open(FILE,'r') as f:
+            file_contents = f.read()
+        try:
+            format_bibtex(re.sub('(\s+)\n','\n',file_contents),
+                OUTPUT=args.output, VERBOSE=args.verbose)
+        except:
+            pass
+        else:
+            #-- remove the input file
+            os.remove(FILE) if args.cleanup else None
 
 #-- run main program
 if __name__ == '__main__':

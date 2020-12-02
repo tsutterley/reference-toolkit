@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-gen_citekeys.py (10/2019)
+gen_citekeys.py (12/2020)
 Generates Papers2-like cite keys for BibTeX
 
 Enter Author names and publication years
@@ -8,21 +8,21 @@ Uses DOI's or titles to generate "universal" keys
 Alternatively can generate a random suffix
 
 CALLING SEQUENCE:
-    python gen_citekeys.py --author=Smith --year=1997 \
-        --doi="11.1234/abc.222.987654"
+    python gen_citekeys.py --author=Rignot --year=2008 \
+        --doi="10.1038/ngeo102"
 
-    will result in Smith:1997ct as the citekey
+    will result in Rignot:2008ct as the citekey
 
-    python gen_citekeys.py --author=Smith --year=1997 \
+    python gen_citekeys.py --author=RIgnot --year=2008 \
         --title="Direct Evidence Of Flying Birds Found In Sky Pictures"
 
-    will result in Smith:1997wo as the citekey
+    will result in Rignot:2008vv as the citekey
 
 COMMAND LINE OPTIONS:
-    -A X, --author=X: authors of publications
-    -Y X, --year=X: corresponding publication years
-    -D X, --doi=X: corresponding DOI of the publication
-    -T X, --title=X: corresponding title of the publication
+    -A X, --author X: authors of publications
+    -Y X, --year X: corresponding publication years
+    -D X, --doi X: corresponding DOI of the publication
+    -T X, --title X: corresponding title of the publication
         if the DOI is not available
 
 PROGRAM DEPENDENCIES:
@@ -34,6 +34,7 @@ NOTES:
     Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 10/2019: strip title of leading and trailing whitespace before hash
     Updated 07/2019: modifications for python3 string compatibility
     Updated 10/2017: use modulus of 0xffffffff (4294967295)
@@ -50,15 +51,16 @@ import os
 import re
 import math
 import string
-import getopt
 import random
+import argparse
 import binascii
 from language_conversion import language_conversion
 
 #-- PURPOSE: create a Papers2-like cite key using the DOI
 def gen_citekey(author,year,doi,title):
     #-- replace unicode characters in author with plain text
-    author = author.decode('unicode-escape')
+    if sys.version_info[0] == 2:
+        author = author.decode('unicode-escape')
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
     for LV, CV, UV, PV in language_conversion():
         author = author.replace(UV, PV)
@@ -93,46 +95,38 @@ def gen_citekey(author,year,doi,title):
     #-- return the final citekey from the function
     return '{0}:{1}{2}'.format(author,year,key)
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -A X, --author=X\tAuthors of publications')
-    print(' -Y X, --year=X\t\tCorresponding publication year')
-    print(' -D X, --doi=X\t\tCorresponding publication DOI')
-    print(' -T X, --title=X\tCorresponding title if no DOI\n')
-
 #-- main program that calls gen_citekey()
 def main():
-    long_options = ['help','author=','year=','doi=','title=']
-    optlist,arglist=getopt.getopt(sys.argv[1:],'hA:Y:D:T:',long_options)
-    #-- default: none
-    AUTHOR = []
-    YEAR = []
-    DOI = None
-    TITLE = None
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-A','--author'):
-            AUTHOR = arg.split(',')
-        elif opt in ('-Y','--year'):
-            YEAR = arg.split(',')
-        elif opt in ('-D','--doi'):
-            DOI = arg.split(',')
-        elif opt in ('-T','--title'):
-            TITLE = arg.split(',')
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Copies a journal article from a website to the reference
+            local directory
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('--author','-A',
+        type=str, nargs='+',
+        help='Lead author of publication')
+    parser.add_argument('--year','-Y',
+        type=str, nargs='+',
+        help='Corresponding publication year')
+    parser.add_argument('--doi','-D',
+        type=str, nargs='+',
+        help='Digital Object Identifier (DOI) of the publication')
+    parser.add_argument('--title','-T',
+        type=str, nargs='+',
+        help='Corresponding publication title')
+    args = parser.parse_args()
 
     #-- if not using DOIs to set citekeys
-    if DOI is None:
-        DOI = [None]*len(AUTHOR)
+    if args.doi is None:
+        args.doi = [None]*len(args.author)
     #-- if not using titles to set citekeys
-    if TITLE is None:
-        TITLE = [None]*len(AUTHOR)
+    if args.title is None:
+        args.title = [None]*len(args.author)
 
     #-- run for each author-year pair
-    for A,Y,D,T in zip(AUTHOR,YEAR,DOI,TITLE):
+    for A,Y,D,T in zip(args.author,args.year,args.doi,args.title):
         citekey = gen_citekey(A,Y,D,T)
         print(citekey)
 

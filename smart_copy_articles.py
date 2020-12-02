@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (07/2018)
-Copies a journal article and supplements from a website to a local directory
+smart_copy_articles.py (12/2020)
+Copies journal articles and supplements from a website to a local directory
      using information from crossref.org
 
 Enter DOI's of journals to copy a file from a URL to the reference path
 
 CALLING SEQUENCE:
-    python smart_copy_articles.py --doi=10.1038/ngeo102 \
+    python smart_copy_articles.py --doi 10.1038/ngeo102 \
         https://www.nature.com/ngeo/journal/v1/n2/pdf/ngeo102.pdf
 
     will download the copy to 2008/Rignot/Rignot_Nat._Geosci.-1_2008.pdf
@@ -16,7 +16,7 @@ INPUTS:
     url to file to be copied into the reference path
 
 COMMAND LINE OPTIONS:
-    -D X, --doi=X: DOI of the publication
+    -D X, --doi X: DOI of the publication
     -S, --supplement: file is a supplemental file
 
 PROGRAM DEPENDENCIES:
@@ -30,6 +30,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 12/2020: using argparse to set command line options
     Updated 07/2018: using urllib.request for python3
     Updated 10/2017: use data path and data file format from referencerc file
     Updated 09/2017: use timeout of 20 to prevent socket.timeout
@@ -43,15 +44,19 @@ from __future__ import print_function
 import sys
 import os
 import re
+import ssl
 import json
 import shutil
 import inspect
-import getopt
+import argparse
+import posixpath
 from read_referencerc import read_referencerc
 from language_conversion import language_conversion
 if sys.version_info[0] == 2:
+    from urllib import quote_plus
     import urllib2
 else:
+    from urllib.parse import quote_plus
     import urllib.request as urllib2
 
 #-- current file path for the program
@@ -62,7 +67,7 @@ filepath = os.path.dirname(os.path.abspath(filename))
 def check_connection(remote_url):
     #-- attempt to connect to remote file
     try:
-        urllib2.urlopen(remote_url, timeout=20)
+        urllib2.urlopen(remote_url, timeout=20, context=ssl.SSLContext())
     except urllib2.HTTPError:
         raise RuntimeError('Check URL: {0}'.format(remote_url))
     except urllib2.URLError:
@@ -78,10 +83,13 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     fi = re.sub('\?[\_a-z]{1,4}\=(.*?)$','',remote_file)
     #-- get extension from file (assume pdf if extension cannot be extracted)
     fileExtension=os.path.splitext(fi)[1] if os.path.splitext(fi)[1] else '.pdf'
+    #-- ssl context
+    context = ssl.SSLContext()
 
     #-- open connection with crossref.org for DOI
-    req = urllib2.Request(url='https://api.crossref.org/works/{0}'.format(doi))
-    resp = json.loads(urllib2.urlopen(req, timeout=40).read())
+    crossref=posixpath.join('https://api.crossref.org','works',quote_plus(doi))
+    req=urllib2.Request(url=crossref)
+    resp=json.loads(urllib2.urlopen(req,timeout=60,context=context).read())
 
     #-- get author and replace unicode characters in author with plain text
     author = resp['message']['author'][0]['family']
@@ -153,7 +161,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     #-- transfer should work properly with ascii and binary data formats
     headers = {'User-Agent':"Magic Browser"}
     request = urllib2.Request(remote_file, headers=headers)
-    f_in = urllib2.urlopen(request, timeout=20)
+    f_in = urllib2.urlopen(request, timeout=20, context=context)
     with create_unique_filename(local_file) as f_out:
         shutil.copyfileobj(f_in, f_out, CHUNK)
     f_in.close()
@@ -177,33 +185,27 @@ def create_unique_filename(filename):
         filename = u'{0}-{1:d}{2}'.format(fileBasename, counter, fileExtension)
         counter += 1
 
-#-- PURPOSE: help module to describe the optional input parameters
-def usage():
-    print('\nHelp: {}'.format(os.path.basename(sys.argv[0])))
-    print(' -D X, --doi=X\tDOI of the publication')
-    print(' -S, --supplement\tFile is a supplemental file\n')
-
 #-- main program that calls smart_copy_articles()
 def main():
-    long_options = ['help','doi=','supplement']
-    optlist,arglist=getopt.getopt(sys.argv[1:],'hD:S',long_options)
-    #-- default: none
-    DOI = []
-    SUPPLEMENT = False
-    #-- for each input argument
-    for opt, arg in optlist:
-        if opt in ('-h','--help'):
-            usage()
-            sys.exit()
-        elif opt in ('-D','--doi'):
-            DOI = arg.split(',')
-        elif opt in ('-S','--supplement'):
-            SUPPLEMENT = True
+    #-- Read the system arguments listed after the program
+    parser = argparse.ArgumentParser(
+        description="""Copies a journal article from a website to the reference
+            local directory using information from crossref.org
+            """
+    )
+    #-- command line parameters
+    parser.add_argument('url',
+        type=str, help='url to article to be copied into the reference path')
+    parser.add_argument('--doi','-D',
+        type=str, help='Digital Object Identifier (DOI) of the publication')
+    parser.add_argument('--supplement','-S',
+        default=False, action='store_true',
+        help='File is an article supplement')
+    args = parser.parse_args()
 
-    #-- run for each entered url to a remote file
-    for remote_url,D in zip(arglist,DOI):
-        if check_connection(remote_url):
-            smart_copy_articles(remote_url,D,SUPPLEMENT)
+    #-- check connection to url and then download article
+    if check_connection(args.url):
+        smart_copy_articles(args.url,args.doi,args.supplement)
 
 #-- run main program
 if __name__ == '__main__':
