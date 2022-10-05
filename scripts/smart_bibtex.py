@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (12/2020)
+smart_bibtex.py (09/2022)
 Creates a bibtex entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -29,6 +29,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 07/2018: using python3 urllib.request with future library
     Updated 11/2017: remove line skips and series of whitespace from title
@@ -40,7 +41,6 @@ UPDATE HISTORY:
     Written 06/2017
 """
 from __future__ import print_function
-import future.standard_library
 
 import sys
 import os
@@ -51,12 +51,9 @@ import inspect
 import datetime
 import argparse
 import posixpath
-from gen_citekeys import gen_citekey
-from read_referencerc import read_referencerc
-from language_conversion import language_conversion
-with future.standard_library.hooks():
-    import urllib.request
-    import urllib.parse
+import urllib.request
+import urllib.parse
+import reference_toolkit
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -79,7 +76,8 @@ def check_connection(doi):
 #-- PURPOSE: create a formatted bibtex entry for a doi
 def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     #-- open connection with crossref.org for DOI
     crossref = posixpath.join('https://api.crossref.org','works',
         urllib.parse.quote_plus(doi))
@@ -117,12 +115,12 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         family = a['family'].title() if a['family'].isupper() else a['family']
         given = a['given'].title() if a['given'].isupper() else a['given']
         #-- split initials if as a single variable
-        if re.match('([A-Z])\.([A-Z])\.', given):
-            given = ' '.join(re.findall('([A-Z])\.([A-Z])\.', given).pop())
-        elif re.match('([A-Za-z]+)\s([A-Z])\.', given):
-            given = ' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.', given).pop())
-        elif re.match('([A-Z])\.', given):
-            given = ' '.join(re.findall('([A-Z])\.',given))
+        if re.match(r'([A-Z])\.([A-Z])\.', given):
+            given = ' '.join(re.findall(r'([A-Z])\.([A-Z])\.', given).pop())
+        elif re.match(r'([A-Za-z]+)\s([A-Z])\.', given):
+            given = ' '.join(re.findall(r'([A-Za-z]+)\s([A-Z])\.', given).pop())
+        elif re.match(r'([A-Z])\.', given):
+            given = ' '.join(re.findall(r'([A-Z])\.',given))
         #-- add to current authors list
         current_authors.append(u'{0}, {1}'.format(family, given))
 
@@ -158,9 +156,9 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         current_entry['url'] = resp['message']['URL']
     #-- get pages
     if 'page' in resp['message'].keys():
-        if bool(re.search('\d+',resp['message']['page'])):
+        if bool(re.search(r'\d+',resp['message']['page'])):
             #-- add starting page to current_pages array
-            pages = [int(p) for p in re.findall('\d+',resp['message']['page'])]
+            pages = [int(p) for p in re.findall(r'\d+',resp['message']['page'])]
             current_pages[0] = pages[0]
             if (len(pages) > 1):
                 current_pages[1] = pages[1]
@@ -181,7 +179,7 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     #-- author_directory: replace unicode characters with combined unicode
     #-- bibtex entry for authors: replace unicode characters with latex symbols
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
-    for LV, CV, UV, PV in language_conversion():
+    for LV, CV, UV, PV in reference_toolkit.language_conversion():
         firstauthor = firstauthor.replace(UV, PV)
         author_directory = author_directory.replace(UV, CV)
         current_entry['author'] = current_entry['author'].replace(UV, LV)
@@ -190,18 +188,19 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     #-- encode as utf-8
     firstauthor = firstauthor.encode('utf-8')
     #-- remove line skips and series of whitespace from title
-    current_entry['title'] = re.sub('\s+',' ',current_entry['title'])
+    current_entry['title'] = re.sub(r'\s+',' ',current_entry['title'])
     #-- remove spaces, dashes and apostrophes from author_directory
-    author_directory = re.sub('\s','_',author_directory)
-    author_directory = re.sub('\-|\'','',author_directory)
-    year_directory, = re.findall('\d+',current_entry['year'])
+    author_directory = re.sub(r'\s','_',author_directory)
+    author_directory = re.sub(r'\-|\'','',author_directory)
+    year_directory, = re.findall(r'\d+',current_entry['year'])
 
     #-- create list of article keywords if present in bibliography file
     if current_keywords:
         current_entry['keywords'] = ', '.join(current_keywords)
 
     #-- calculate the universal citekey
-    current_key['citekey']=gen_citekey(firstauthor,current_entry['year'],doi,None)
+    current_key['citekey'] = reference_toolkit.gen_citekey(firstauthor,
+        current_entry['year'], doi, None)
 
     #-- create entry for pages
     if (current_pages[0] is None) and (current_pages[1] is None):
@@ -214,7 +213,7 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     #-- if printing to file: output bibtex file for author and year
     if OUTPUT:
         #-- parse universal citekey to generate output filename
-        authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',current_key['citekey']).pop()
+        authkey,citekey,=re.findall(r'(\D+)\:(\d+\D+)',current_key['citekey']).pop()
         bibtex_file = '{0}-{1}.bib'.format(authkey,citekey)
         #-- output directory
         bibtex_dir = os.path.join(datapath,year_directory,author_directory)
@@ -233,7 +232,7 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     #-- for each field within the entry
     for s,k,v in sorted(field_tuple):
         #-- make sure ampersands are in latex format
-        v = re.sub('(?<=\s)\&','\\\&',v) if re.search('(?<=\s)\&',v) else v
+        v = re.sub(r'(?<=\s)\&',r'\\\&',v) if re.search(r'(?<=\s)\&',v) else v
         #-- do not put the month field in brackets
         if (k == 'month'):
             print('{0} = {1},'.format(k,v.rstrip()),file=fid)

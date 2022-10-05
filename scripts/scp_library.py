@@ -41,24 +41,20 @@ import os
 import scp
 import stat
 import getpass
-import inspect
 import logging
 import argparse
 import builtins
 import paramiko
 import posixpath
-from read_referencerc import read_referencerc
-
-#-- current file path for the program
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-filepath = os.path.dirname(os.path.abspath(filename))
+import reference_toolkit
 
 #-- Reads BibTeX files for each article stored in the working directory
 #-- exports as a single file sorted by BibTeX key
 def scp_library(client, ftp, REMOTE, PULL=False, LIST=False,
     VERBOSE=False, CLOBBER=False, MODE=0o775):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
 
     #-- subdirectories with supplementary information
     S = 'Supplemental'
@@ -66,7 +62,7 @@ def scp_library(client, ftp, REMOTE, PULL=False, LIST=False,
     #-- if pulling from remote directory to local
     if PULL:
         #-- iterate over yearly directories
-        years = [s for s in ftp.listdir(REMOTE) if re.match('\d+',s) and
+        years = [s for s in ftp.listdir(REMOTE) if re.match(r'\d+',s) and
             stat.S_ISDIR(ftp.lstat(posixpath.join(REMOTE,s)).st_mode)]
         for Y in sorted(years):
             #-- find author directories in year
@@ -74,7 +70,7 @@ def scp_library(client, ftp, REMOTE, PULL=False, LIST=False,
                 stat.S_ISDIR(ftp.lstat(posixpath.join(REMOTE,Y,s)).st_mode)]
             for A in sorted(authors):
                 #-- find BibTeX and article files within author directory
-                regex = '((.*?)-(.*?)\.bib$)|({0}_(.*?)_{1}(.*?)$)'.format(A,Y)
+                regex = r'((.*?)-(.*?)\.bib$)|({0}_(.*?)_{1}(.*?)$)'.format(A,Y)
                 FILES = [f for f in ftp.listdir(posixpath.join(REMOTE,Y,A))
                     if re.match(regex,f)]
                 #-- transfer each article file (check if existing)
@@ -96,7 +92,7 @@ def scp_library(client, ftp, REMOTE, PULL=False, LIST=False,
                             CLOBBER=CLOBBER,VERBOSE=VERBOSE,LIST=LIST,MODE=MODE)
     else:
         #-- iterate over yearly directories
-        years = [sd for sd in os.listdir(datapath) if re.match('\d+',sd) and
+        years = [sd for sd in os.listdir(datapath) if re.match(r'\d+',sd) and
             os.path.isdir(os.path.join(datapath,sd))]
         for Y in sorted(years[:1]):
             #-- make remote directory if currently non-existent
@@ -110,7 +106,7 @@ def scp_library(client, ftp, REMOTE, PULL=False, LIST=False,
                 if (A not in ftp.listdir(posixpath.join(REMOTE,Y))):
                     ftp.mkdir(posixpath.join(REMOTE,Y,A), MODE)
                 #-- find BibTeX and article files within author directory
-                regex = '((.*?)-(.*?)\.bib$)|({0}_(.*?)_{1}(.*?)$)'.format(A,Y)
+                regex = r'((.*?)-(.*?)\.bib$)|({0}_(.*?)_{1}(.*?)$)'.format(A,Y)
                 FILES = [f for f in os.listdir(os.path.join(datapath,Y,A))
                     if re.match(regex,f)]
                 #-- transfer each article file (check if existing)

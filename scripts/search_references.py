@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (12/2020)
+search_references.py (09/2022)
 Reads bibtex files for each article in a given set of years to search for
     keywords, authors, journal, etc using regular expressions
 
@@ -24,6 +24,7 @@ PROGRAM DEPENDENCIES:
     language_conversion.py: Outputs map for converting symbols between languages
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 06/2018: added DOI search using the -D or --doi options
@@ -43,8 +44,7 @@ import argparse
 import posixpath
 import subprocess
 import webbrowser
-from read_referencerc import read_referencerc
-from language_conversion import language_conversion
+import reference_toolkit
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -55,32 +55,36 @@ filepath = os.path.dirname(os.path.abspath(filename))
 def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
     OPEN=False, WEBPAGE=False, EXPORT=None):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     #-- bibtex fields to be printed in the output file
     bibtex_field_types = ['address','affiliation','annote','author',
         'booktitle','chapter','crossref','doi','edition','editor',
         'howpublished','institution','isbn','issn','journal','key',
         'keywords','month','note','number','organization','pages',
         'publisher','school','series','title','type','url','volume','year']
-    field_regex = '[\s]?(' + '|'.join([i for i in bibtex_field_types]) + \
-        ')[\s]?\=[\s]?[\{]?[\{]?(.*?)[\}]?[\}]?[\,]?[\s]?\n'
+    field_regex = r'[\s]?(' + '|'.join(bibtex_field_types) + \
+        r')[\s]?\=[\s]?[\{]?[\{]?(.*?)[\}]?[\}]?[\,]?[\s]?\n'
     R1 = re.compile(field_regex, flags=re.IGNORECASE)
 
     #-- compile regular expression operators for input search terms
     if AUTHOR and FIRST:
-        R2 = re.compile('^'+'|'.join(AUTHOR), flags=re.IGNORECASE)
+        R2 = re.compile(r'^'+'|'.join(AUTHOR), flags=re.IGNORECASE)
     elif AUTHOR:
-        R2 = re.compile('|'.join(AUTHOR), flags=re.IGNORECASE)
+        R2 = re.compile(r'|'.join(AUTHOR), flags=re.IGNORECASE)
     if JOURNAL:
-        R3 = re.compile('|'.join(JOURNAL), flags=re.IGNORECASE)
+        R3 = re.compile(r'|'.join(JOURNAL), flags=re.IGNORECASE)
     if KEYWORDS:
-        R4 = re.compile('|'.join(KEYWORDS), flags=re.IGNORECASE)
+        R4 = re.compile(r'|'.join(KEYWORDS), flags=re.IGNORECASE)
 
     #-- if exporting matches to a single file or standard output (to terminal)
-    fid = open(os.path.expanduser(EXPORT), 'w') if EXPORT else sys.stdout
+    if EXPORT:
+        fid = open(os.path.expanduser(EXPORT), mode="w", encoding="utf-8")
+    else:
+        fid = sys.stdout
 
     #-- find directories of years
-    regex_years = '|'.join(YEAR) if YEAR else '\d+'
+    regex_years = '|'.join(YEAR) if YEAR else r'\d+'
     years = [sd for sd in os.listdir(datapath) if re.match(regex_years,sd) and
         os.path.isdir(os.path.join(datapath,sd))]
     match_count = 0
@@ -92,10 +96,11 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
         for A in sorted(authors):
             #-- find bibtex files
             bibtex_files = [fi for fi in os.listdir(os.path.join(datapath,Y,A))
-                if re.match('(.*?)-(.*?).bib$',fi)]
+                if re.match(r'(.*?)-(.*?).bib$',fi)]
             #-- read each bibtex file
             for fi in bibtex_files:
-                with open(os.path.join(datapath,Y,A,fi), 'r') as f:
+                bibtex_file = os.path.join(datapath,Y,A,fi)
+                with open(bibtex_file, mode="r", encoding="utf-8") as f:
                     bibtex_entry = f.read()
                 #-- extract bibtex fields
                 bibtex_field_entries = R1.findall(bibtex_entry)
@@ -103,9 +108,7 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
                 for key,val in bibtex_field_entries:
                     #-- replace latex symbols with unicode characters
                     #-- 1: latex, 2: combining unicode, 3: unicode, 4: plain
-                    if sys.version_info[0] == 2:
-                        val = val.decode('unicode-escape')
-                    for LV, CV, UV, PV in language_conversion():
+                    for LV, CV, UV, PV in reference_toolkit.language_conversion():
                         val = val.replace(LV,CV)
                     #-- add to current entry dictionary
                     entry[key.lower()] = val

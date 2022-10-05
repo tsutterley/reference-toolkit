@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (12/2020)
+smart_citekeys.py (09/2022)
 Generates Papers2-like cite keys for BibTeX using information from crossref.org
 
 Enter DOI's of journals to generate "universal" keys
@@ -22,6 +22,7 @@ NOTES:
     Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: using python3 urllib.request with future library
@@ -35,7 +36,6 @@ UPDATE HISTORY:
     Written 02/2017
 """
 from __future__ import print_function
-import future.standard_library
 
 import sys
 import os
@@ -46,10 +46,9 @@ import json
 import binascii
 import argparse
 import posixpath
-from language_conversion import language_conversion
-with future.standard_library.hooks():
-    import urllib.request
-    import urllib.parse
+import urllib.request
+import urllib.parse
+import reference_toolkit
 
 #-- PURPOSE: check internet connection and URL
 def check_connection(doi):
@@ -76,12 +75,10 @@ def smart_citekey(doi):
 
     #-- get author and replace unicode characters in author with plain text
     author = resp['message']['author'][0]['family']
-    if sys.version_info[0] == 2:
-        author = author.decode('unicode-escape')
     #-- check if author fields are initially uppercase: change to title
     author = author.title() if author.isupper() else author
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
-    for LV, CV, UV, PV in language_conversion():
+    for LV, CV, UV, PV in reference_toolkit.language_conversion():
         author = author.replace(UV, PV)
     #-- replace symbols
     author = re.sub(b'\s|\-|\'',b'',author.encode('utf-8')).decode('utf-8')

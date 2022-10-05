@@ -1,23 +1,27 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (12/2020)
-Copies journal articles and supplements from a website to a local directory
-     using information from crossref.org
+smart_move_articles.py (09/2022)
+Moves journal articles and supplements to the reference local directory
+    using information from crossref.org
 
-Enter DOI's of journals to copy a file from a URL to the reference path
+Enter DOI's of journals to move a file to the reference path
 
 CALLING SEQUENCE:
-    python smart_copy_articles.py --doi 10.1038/ngeo102 \
-        https://www.nature.com/ngeo/journal/v1/n2/pdf/ngeo102.pdf
+    python smart_move_articles.py --doi 10.1038/ngeo102 ~/Downloads/ngeo102.pdf
 
-    will download the copy to 2008/Rignot/Rignot_Nat._Geosci.-1_2008.pdf
+    will move the file to 2008/Rignot/Rignot_Nat._Geosci.-1_2008.pdf
 
 INPUTS:
-    url to file to be copied into the reference path
+    file to be moved into the reference path
 
 COMMAND LINE OPTIONS:
     -D X, --doi X: DOI of the publication
     -S, --supplement: file is a supplemental file
+    -C, --cleanup: Remove the input file after moving
+
+PYTHON DEPENDENCIES:
+    future: Compatibility layer between Python 2 and Python 3
+        http://python-future.org/
 
 PROGRAM DEPENDENCIES:
     read_referencerc.py: Sets default file path and file format for output files
@@ -30,13 +34,14 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
-    Updated 07/2018: using urllib.request for python3
+    Updated 07/2018: using python3 urllib.request with future library
+        tilde-expansion of input journal file
     Updated 10/2017: use data path and data file format from referencerc file
     Updated 09/2017: use timeout of 20 to prevent socket.timeout
     Updated 06/2017: use language_conversion for journal name
-    Forked 05/2017 from copy_journal_articles.py to use info from crossref.org
-    Updated 05/2017: Convert special characters with language_conversion program
+    Forked 05/2017 from move_journal_articles.py to use info from crossref.org
     Written 05/2017
 """
 from __future__ import print_function
@@ -47,49 +52,28 @@ import re
 import ssl
 import json
 import shutil
-import inspect
 import argparse
 import posixpath
-from read_referencerc import read_referencerc
-from language_conversion import language_conversion
-if sys.version_info[0] == 2:
-    from urllib import quote_plus
-    import urllib2
-else:
-    from urllib.parse import quote_plus
-    import urllib.request as urllib2
+import urllib.request
+import urllib.parse
+import reference_toolkit
 
-#-- current file path for the program
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-filepath = os.path.dirname(os.path.abspath(filename))
-
-#-- PURPOSE: check internet connection and URL
-def check_connection(remote_url):
-    #-- attempt to connect to remote file
-    try:
-        urllib2.urlopen(remote_url, timeout=20, context=ssl.SSLContext())
-    except urllib2.HTTPError:
-        raise RuntimeError('Check URL: {0}'.format(remote_url))
-    except urllib2.URLError:
-        raise RuntimeError('Check internet connection')
-    else:
-        return True
-
-#-- PURPOSE: create directories and copy a reference file after formatting
-def smart_copy_articles(remote_file,doi,SUPPLEMENT):
+#-- PURPOSE: create directories and move a reference file after formatting
+def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
-    #-- input remote file scrubbed of any additional html information
-    fi = re.sub('\?[\_a-z]{1,4}\=(.*?)$','',remote_file)
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     #-- get extension from file (assume pdf if extension cannot be extracted)
     fileExtension=os.path.splitext(fi)[1] if os.path.splitext(fi)[1] else '.pdf'
+
     #-- ssl context
     context = ssl.SSLContext()
-
     #-- open connection with crossref.org for DOI
-    crossref=posixpath.join('https://api.crossref.org','works',quote_plus(doi))
-    req=urllib2.Request(url=crossref)
-    resp=json.loads(urllib2.urlopen(req,timeout=60,context=context).read())
+    crossref = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(doi))
+    request = urllib.request.Request(url=crossref)
+    response = urllib.request.urlopen(request,timeout=60,context=context)
+    resp = json.loads(response.read())
 
     #-- get author and replace unicode characters in author with plain text
     author = resp['message']['author'][0]['family']
@@ -98,11 +82,11 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     #-- get journal name
     journal, = resp['message']['container-title']
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
-    for LV, CV, UV, PV in language_conversion():
+    for LV, CV, UV, PV in reference_toolkit.language_conversion():
         author = author.replace(UV, CV)
         journal = journal.replace(UV, PV)
     #-- remove spaces, dashes and apostrophes
-    author = re.sub('\s','_',author); author = re.sub('\-|\'','',author)
+    author = re.sub(r'\s','_',author); author = re.sub('\-|\'','',author)
 
     #-- get publication date (prefer date when in print)
     if 'published-print' in resp['message'].keys():
@@ -118,12 +102,13 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
 
     #-- file listing journal abbreviations modified from
     #-- https://github.com/JabRef/abbrv.jabref.org/tree/master/journals
-    abbreviation_file = 'journal_abbreviations_webofscience-ts.txt'
+    abbreviation_file = reference_toolkit.get_data_path(['assets',
+        'journal_abbreviations_webofscience-ts.txt'])
     #-- create regular expression pattern for extracting abbreviations
-    arg = re.sub('[^a-zA-z0-9\&\s\,]',"",journal)
-    rx=re.compile('\n{0}[\s+]?\=[\s+]?(.*?)\n'.format(arg),flags=re.IGNORECASE)
+    arg = re.sub(r'[^a-zA-z0-9\&\s\,\-]',"",journal)
+    rx=re.compile(r'\n{0}[\s+]?\=[\s+]?(.*?)\n'.format(arg),flags=re.IGNORECASE)
     #-- try to find journal article within filename from webofscience file
-    with open(os.path.join(filepath,abbreviation_file),'r') as f:
+    with open(abbreviation_file, mode="r", encoding="utf8") as f:
         abbreviation_contents = f.read()
 
     #-- if abbreviation not found: just use the whole journal name
@@ -155,16 +140,11 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
         vol, num, year, fileExtension)
     local_file = os.path.join(directory, dataformat.format(*args))
 
-    #-- chunked transfer encoding size
-    CHUNK = 16 * 1024
-    #-- open url and copy contents to local file using chunked transfer encoding
-    #-- transfer should work properly with ascii and binary data formats
-    headers = {'User-Agent':"Magic Browser"}
-    request = urllib2.Request(remote_file, headers=headers)
-    f_in = urllib2.urlopen(request, timeout=20, context=context)
-    with create_unique_filename(local_file) as f_out:
-        shutil.copyfileobj(f_in, f_out, CHUNK)
-    f_in.close()
+    #-- open input file and copy contents to local file
+    with open(fi, 'rb') as f_in, create_unique_filename(local_file) as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    #-- remove the input file
+    os.remove(fi) if CLEANUP else None
 
 #-- PURPOSE: open a unique filename adding a numerical instance if existing
 def create_unique_filename(filename):
@@ -185,27 +165,30 @@ def create_unique_filename(filename):
         filename = u'{0}-{1:d}{2}'.format(fileBasename, counter, fileExtension)
         counter += 1
 
-#-- main program that calls smart_copy_articles()
+#-- main program that calls smart_move_articles()
 def main():
     #-- Read the system arguments listed after the program
     parser = argparse.ArgumentParser(
-        description="""Copies a journal article from a website to the reference
-            local directory using information from crossref.org
+        description="""Moves a journal article to the reference local directory
+            using information from crossref.org
             """
     )
     #-- command line parameters
-    parser.add_argument('url',
-        type=str, help='url to article to be copied into the reference path')
+    parser.add_argument('infile',
+        type=lambda p: os.path.abspath(os.path.expanduser(p)),
+        help='article file to be copied into the reference path')
     parser.add_argument('--doi','-D',
         type=str, help='Digital Object Identifier (DOI) of the publication')
     parser.add_argument('--supplement','-S',
         default=False, action='store_true',
         help='File is an article supplement')
+    parser.add_argument('--cleanup','-C',
+        default=False, action='store_true',
+        help='Remove input file after moving')
     args = parser.parse_args()
 
-    #-- check connection to url and then download article
-    if check_connection(args.url):
-        smart_copy_articles(args.url,args.doi,args.supplement)
+    #-- move article file to reference directory
+    smart_move_articles(args.infile, args.doi, args.supplement, args.cleanup)
 
 #-- run main program
 if __name__ == '__main__':

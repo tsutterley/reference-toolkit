@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (12/2020)
+ris_to_bibtex.py (09/2022)
 Converts RIS bibliography files into bibtex files with Universal citekeys
     https://en.wikipedia.org/wiki/RIS_(file_format)
 
@@ -22,6 +22,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: added editor fields as valid RIS entries with format FN,GN
@@ -41,20 +42,14 @@ from __future__ import print_function
 import sys
 import re
 import os
-import inspect
 import argparse
 import datetime
-from gen_citekeys import gen_citekey
-from read_referencerc import read_referencerc
-from language_conversion import language_conversion
-
-#-- current file path for the program
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-filepath = os.path.dirname(os.path.abspath(filename))
+import reference_toolkit
 
 def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     #-- easily mappable RIS and bibtex fields
     bibtex_field_map = {'JO':'journal','T2':'journal','VL':'volume',
         'IS':'number','PB':'publisher','SN':'issn','UR':'url'}
@@ -67,10 +62,10 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
         'VL','IS','SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','DOI','N1',
         'KW','AB','KW']
     #-- regular expression for reading RIS files
-    RIS_regex = '({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
+    RIS_regex = r'({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
     R1 = re.compile(RIS_regex, flags=re.IGNORECASE)
     #-- regular expression pattern to extract doi from webpages or "doi:"
-    doi_regex = '(doi\:[\s]?|http[s]?\:\/\/(dx\.)?doi\.org\/)?(10\.(.*?))$'
+    doi_regex = r'(doi\:[\s]?|http[s]?\:\/\/(dx\.)?doi\.org\/)?(10\.(.*?))$'
     R2 = re.compile(doi_regex, flags=re.IGNORECASE)
     #-- sort bibtex fields in output
     bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,
@@ -82,10 +77,10 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
 
     #-- list of known compound surnames to search for
     compound_surname_regex = []
-    compound_surname_regex.append('(?<=\s)van\s[de|den]?[\s]?(.*?)')
-    compound_surname_regex.append('(?<=\s)von\s[de|den]?[\s]?(.*?)')
-    compound_surname_regex.append('(?<![van|von])(?<=\s)de\s(.*?)')
-    compound_surname_regex.append('(?<!de)(?<=\s)(la|los)\s?(.*?)')
+    compound_surname_regex.append(r'(?<=\s)van\s[de|den]?[\s]?(.*?)')
+    compound_surname_regex.append(r'(?<=\s)von\s[de|den]?[\s]?(.*?)')
+    compound_surname_regex.append(r'(?<![van|von])(?<=\s)de\s(.*?)')
+    compound_surname_regex.append(r'(?<!de)(?<=\s)(la|los)\s?(.*?)')
 
     #-- create python dictionaries with entries and citekey
     current_entry = {}
@@ -116,7 +111,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
             #-- check if author fields are initially uppercase: change to title
             RIS_value = RIS_value.title() if RIS_value.isupper() else RIS_value
             #-- output formatted author field = lastname, given name(s)
-            if re.match('(.*?),\s(.*?)',RIS_value):
+            if re.match(r'(.*?),\s(.*?)',RIS_value):
                 #-- add to authors list
                 if RIS_field in ('ED'):
                     current_editors.append(RIS_value)
@@ -139,12 +134,12 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
                     ALN = author_fields[-1]
                     AGN = ' '.join(author_fields[:-1])
                 #-- split initials if as a single variable
-                if re.match('([A-Z])\.([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Z])\.([A-Z])\.',AGN).pop())
-                elif re.match('([A-Za-z]+)\s([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.',AGN).pop())
-                elif re.match('([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Z])\.',AGN))
+                if re.match(r'([A-Z])\.([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Z])\.([A-Z])\.',AGN).pop())
+                elif re.match(r'([A-Za-z]+)\s([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Za-z]+)\s([A-Z])\.',AGN).pop())
+                elif re.match(r'([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Z])\.',AGN))
                 #-- add to current authors or editors list
                 if RIS_field in ('ED'):
                     current_editors.append('{0}, {1}'.format(ALN,AGN))
@@ -152,7 +147,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
                     current_authors.append('{0}, {1}'.format(ALN,AGN))
         elif RIS_field in ('PY','Y1'):
             #-- partition between publication date to YY/MM/DD
-            cal_date = [int(d) for d in re.findall('\d+',RIS_value)]
+            cal_date = [int(d) for d in re.findall(r'\d+',RIS_value)]
             #-- year = first entry
             current_entry['year'] = '{0:4d}'.format(cal_date[0])
             #-- months of the year
@@ -160,13 +155,13 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
                 #-- month = second entry
                 dt=datetime.datetime.strptime('{0:02d}'.format(cal_date[1]),'%m')
                 current_entry['month'] = dt.strftime('%b').lower()
-        elif (RIS_field == 'SP') and bool(re.search('\d+',RIS_value)):
+        elif (RIS_field == 'SP') and bool(re.search(r'\d+',RIS_value)):
             #-- add starting page to current_pages array
-            pages = [int(p) for p in re.findall('\d+',RIS_value)]
+            pages = [int(p) for p in re.findall(r'\d+',RIS_value)]
             current_pages[0] = pages[0]
             if (len(pages) > 1):
                 current_pages[1] = pages[1]
-        elif RIS_field in ('EP','LP') and bool(re.search('\d+',RIS_value)):
+        elif RIS_field in ('EP','LP') and bool(re.search(r'\d+',RIS_value)):
             #-- add ending page to current_pages array
             current_pages[1] = RIS_value
         elif RIS_field in ('L3','DO','N1','M3','DOI') and bool(R2.search(RIS_value)):
@@ -187,21 +182,10 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     if current_editors:
         current_entry['editor'] = ' and '.join(current_editors)
 
-    #-- decode from utf-8
-    if sys.version_info[0] == 2:
-        #-- extract surname of first author
-        firstauthor = firstauthor.decode('utf-8')
-        author_directory = author_directory.decode('utf-8')
-        current_entry['author'] = current_entry['author'].decode('utf-8')
-        current_entry['title'] = current_entry['title'].decode('utf-8')
-        current_entry['journal'] = current_entry['journal'].decode('utf-8')
-        if current_editors:
-            current_entry['editor'] = current_entry['editor'].decode('utf-8')
-
     #-- firstauthor: replace unicode characters with plain text
     #-- bibtex entry for authors: replace unicode characters with latex symbols
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
-    for LV, CV, UV, PV in language_conversion():
+    for LV, CV, UV, PV in reference_toolkit.language_conversion():
         firstauthor = firstauthor.replace(UV, PV)
         author_directory = author_directory.replace(UV, CV)
         current_entry['author'] = current_entry['author'].replace(UV, LV)
@@ -212,19 +196,19 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- encode as utf-8
     firstauthor = firstauthor.encode('utf-8')
     #-- remove line skips and series of whitespace from title
-    current_entry['title'] = re.sub('\s+',' ',current_entry['title'])
+    current_entry['title'] = re.sub(r'\s+',r' ',current_entry['title'])
     #-- remove spaces, dashes and apostrophes from author_directory
-    author_directory = re.sub('\s','_',author_directory)
-    author_directory = re.sub('\-|\'','',author_directory)
-    year_directory, = re.findall('\d+',current_entry['year'])
+    author_directory = re.sub(r'\s',r'_',author_directory)
+    author_directory = re.sub(r'\-|\'',r'',author_directory)
+    year_directory, = re.findall(r'\d+',current_entry['year'])
 
     #-- create list of article keywords if present in bibliography file
     if current_keywords:
         current_entry['keywords'] = ', '.join(current_keywords)
 
     #-- calculate the universal citekey
-    current_key['citekey'] = gen_citekey(firstauthor,current_entry['year'],
-        current_entry['doi'], current_entry['title'])
+    current_key['citekey'] = reference_toolkit.gen_citekey(firstauthor.decode('utf-8'),
+        current_entry['year'], current_entry['doi'], current_entry['title'])
 
     #-- create entry for pages
     if (current_pages[0] is None) and (current_pages[1] is None):
@@ -237,7 +221,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- if printing to file: output bibtex file for author and year
     if OUTPUT:
         #-- parse universal citekey to generate output filename
-        authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',current_key['citekey']).pop()
+        authkey,citekey,=re.findall(r'(\D+)\:(\d+\D+)',current_key['citekey']).pop()
         bibtex_file = '{0}-{1}.bib'.format(authkey,citekey)
         #-- output directory
         bibtex_dir = os.path.join(datapath,year_directory,author_directory)
@@ -256,7 +240,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- for each field within the entry
     for s,k,v in sorted(field_tuple):
         #-- make sure ampersands are in latex format
-        v = re.sub('(?<=\s)\&','\\\&',v) if re.search('(?<=\s)\&',v) else v
+        v = re.sub(r'(?<=\s)\&','\\\&',v) if re.search(r'(?<=\s)\&',v) else v
         #-- do not put the month field in brackets
         if (k == 'month'):
             print('{0} = {1},'.format(k,v.rstrip()),file=fid)
@@ -295,11 +279,12 @@ def main():
     for FILE in args.infile:
         #-- run for the input file
         print(os.path.basename(FILE)) if args.verbose else None
-        with open(FILE,'r') as f:
+        with open(FILE, mode="r", encoding="utf-8") as f:
             file_contents = f.read().splitlines()
         try:
             ris_to_bibtex(file_contents,OUTPUT=args.output,VERBOSE=args.verbose)
-        except:
+        except Exception as e:
+            print(e)
             pass
         else:
             #-- remove the input file

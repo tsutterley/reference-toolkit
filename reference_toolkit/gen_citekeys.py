@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-gen_citekeys.py (12/2020)
+gen_citekeys.py (09/2022)
 Generates Papers2-like cite keys for BibTeX
 
 Enter Author names and publication years
@@ -34,6 +34,7 @@ NOTES:
     Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 10/2019: strip title of leading and trailing whitespace before hash
     Updated 07/2019: modifications for python3 string compatibility
@@ -46,21 +47,16 @@ UPDATE HISTORY:
 """
 from __future__ import print_function
 
-import sys
-import os
 import re
 import math
 import string
 import random
 import argparse
 import binascii
-from language_conversion import language_conversion
+from reference_toolkit.language_conversion import language_conversion
 
 #-- PURPOSE: create a Papers2-like cite key using the DOI
 def gen_citekey(author,year,doi,title):
-    #-- replace unicode characters in author with plain text
-    if sys.version_info[0] == 2:
-        author = author.decode('unicode-escape')
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
     for LV, CV, UV, PV in language_conversion():
         author = author.replace(UV, PV)
@@ -81,8 +77,8 @@ def gen_citekey(author,year,doi,title):
         key = hash1 + hash2
     elif title:
         #-- scrub special characters from title and set as lowercase
-        title = re.sub('[\_\-\=\/\|\.\{\}]',' ',title.lower())
-        title = ''.join(re.findall('[a-zA-Z0-9\s]',title))
+        title = re.sub(r'[\_\-\=\/\|\.\{\}]',' ',title.lower())
+        title = ''.join(re.findall(r'[a-zA-Z0-9\s]',title))
         #-- convert to unsigned 32-bit int if needed
         crc = binascii.crc32(title.strip().encode('utf-8')) & 0xffffffff
         #-- generate individual hashes

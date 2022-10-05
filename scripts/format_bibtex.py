@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (12/2020)
+format_bibtex.py (09/2022)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 07/2019: modifications for python3 string compatibility
     Updated 07/2018: format editor fields to be "family name, given name"
@@ -40,34 +41,27 @@ from __future__ import print_function
 import sys
 import os
 import re
-import inspect
 import argparse
-from gen_citekeys import gen_citekey
-from read_referencerc import read_referencerc
-from language_conversion import language_conversion
-
-#-- current file path for the program
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-filepath = os.path.dirname(os.path.abspath(filename))
+import reference_toolkit
 
 #-- PURPOSE: formats an input bibtex file
 def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     #-- valid bibtex entry types
     bibtex_entry_types = ['article','book','booklet','conference','inbook',
         'incollection','inproceedings','manual','mastersthesis','phdthesis',
         'proceedings','techreport','unpublished','webpage']
-    entry_regex = '[?<=\@](' + '|'.join([i for i in bibtex_entry_types]) + \
-        ')[\s]?\{(.*?)[\s]?,[\s]?'
+    entry_regex = r'[?<=\@](' + '|'.join(bibtex_entry_types) + r')[\s]?\{(.*?)[\s]?,[\s]?'
     R1 = re.compile(entry_regex, flags=re.IGNORECASE)
     #-- bibtex fields to be printed in the output file
     bibtex_field_types = ['address','affiliation','annote','author','booktitle',
         'chapter','crossref','doi','edition','editor','howpublished','institution',
         'isbn','issn','journal','key','keywords','month','note','number','organization',
         'pages','publisher','school','series','title','type','url','volume','year']
-    field_regex = '[\s]?(' + '|'.join([i for i in bibtex_field_types]) + \
-        ')[\s]?\=[\s]?[\"|\']?[\{]?[\{]?[\s]?(.*?)[\s+]?[\}]?[\}]?[\"|\']?[\s]?[\,]?[\s]?\n'
+    field_regex = r'[\s]?(' + r'|'.join(bibtex_field_types) + \
+        r')[\s]?\=[\s]?[\"|\']?[\{]?[\{]?[\s]?(.*?)[\s+]?[\}]?[\}]?[\"|\']?[\s]?[\,]?[\s]?\n'
     R2 = re.compile(field_regex, flags=re.IGNORECASE)
     #-- sort bibtex fields in output files
     bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,
@@ -77,15 +71,15 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
         'publisher':14,'school':18,'series':20,'title':1,'type':26,'url':9,
         'volume':5,'year':3}
     #-- regular expression pattern to extract doi from webpages or "doi:"
-    doi_regex = '(doi\:[\s]?|http[s]?\:\/\/(dx\.)?doi\.org\/)?(10\.(.*?))$'
+    doi_regex = r'(doi\:[\s]?|http[s]?\:\/\/(dx\.)?doi\.org\/)?(10\.(.*?))$'
     R3 = re.compile(doi_regex, flags=re.IGNORECASE)
 
     #-- list of known compound surnames to search for
     compound_surname_regex = []
-    compound_surname_regex.append('(?<=\s)van\s[de|den]?[\s]?(.*?)')
-    compound_surname_regex.append('(?<=\s)von\s[de|den]?[\s]?(.*?)')
-    compound_surname_regex.append('(?<![van|von])(?<=\s)de\s(.*?)')
-    compound_surname_regex.append('(?<!de)(?<=\s)(la|los)\s?(.*?)')
+    compound_surname_regex.append(r'(?<=\s)van\s[de|den]?[\s]?(.*?)')
+    compound_surname_regex.append(r'(?<=\s)von\s[de|den]?[\s]?(.*?)')
+    compound_surname_regex.append(r'(?<![van|von])(?<=\s)de\s(.*?)')
+    compound_surname_regex.append(r'(?<!de)(?<=\s)(la|los)\s?(.*?)')
 
     #-- create python dictionary with entry
     bibtex_entry = {}
@@ -120,12 +114,12 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
                     ALN = author_fields[-1]
                     AGN = ' '.join(author_fields[:-1])
                 #-- split initials if as a single variable
-                if re.match('([A-Z])\.([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Z])\.([A-Z])\.',AGN).pop())
-                elif re.match('([A-Za-z]+)\s([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.',AGN).pop())
-                elif re.match('([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Z])\.',AGN))
+                if re.match(r'([A-Z])\.([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Z])\.([A-Z])\.',AGN).pop())
+                elif re.match(r'([A-Za-z]+)\s([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Za-z]+)\s([A-Z])\.',AGN).pop())
+                elif re.match(r'([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Z])\.',AGN))
                 #-- add to current authors list
                 current_authors.append('{0}, {1}'.format(ALN,AGN))
             #-- merge authors list
@@ -135,20 +129,20 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
             for A in re.split(' and ', val, flags=re.IGNORECASE):
                 ALN,AGN = A.split(', ')
                 #-- split initials if as a single variable
-                if re.match('([A-Z])\.([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Z])\.([A-Z])\.',AGN).pop())
-                elif re.match('([A-Za-z]+)\s([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Za-z]+)\s([A-Z])\.',AGN).pop())
-                elif re.match('([A-Z])\.', AGN):
-                    AGN=' '.join(re.findall('([A-Z])\.',AGN))
+                if re.match(r'([A-Z])\.([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Z])\.([A-Z])\.',AGN).pop())
+                elif re.match(r'([A-Za-z]+)\s([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Za-z]+)\s([A-Z])\.',AGN).pop())
+                elif re.match(r'([A-Z])\.', AGN):
+                    AGN=' '.join(re.findall(r'([A-Z])\.',AGN))
                 #-- add to current authors list
                 current_authors.append('{0}, {1}'.format(ALN,AGN))
             #-- merge authors list
             bibtex_entry[key.lower()] = ' and '.join(current_authors)
         elif (key.lower() == 'doi') and bool(R3.match(val)):
             bibtex_entry[key.lower()] = R3.match(val).group(3)
-        elif (key.lower() == 'pages') and re.match('(.*?)\s\-\s(.*?)$',val):
-            pages, = re.findall('(.*?)\s\-\s(.*?)$',val)
+        elif (key.lower() == 'pages') and re.match(r'(.*?)\s\-\s(.*?)$',val):
+            pages, = re.findall(r'(.*?)\s\-\s(.*?)$',val)
             bibtex_entry[key.lower()] = '{0}--{1}'.format(pages[0],pages[1])
         elif (key.lower() == 'keywords'):
             bibtex_keywords.append(val)
@@ -162,19 +156,12 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     firstauthor = bibtex_entry['author'].split(',')[0]
     author_directory = bibtex_entry['author'].split(',')[0]
 
-    #-- decode from utf-8
-    if sys.version_info[0] == 2:
-        firstauthor = firstauthor.decode('utf-8')
-        author_directory = author_directory.decode('utf-8')
-        bibtex_entry['author'] = bibtex_entry['author'].decode('utf-8')
-        bibtex_entry['title'] = bibtex_entry['title'].decode('utf-8')
-
     #-- firstauthor: replace unicode characters with plain text
     #-- author_directory: replace unicode characters with combined unicode
     #-- bibtex entry for authors: replace unicode characters with latex symbols
     #-- bibtex entry for titles: replace unicode characters with latex symbols
     #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
-    for LV, CV, UV, PV in language_conversion():
+    for LV, CV, UV, PV in reference_toolkit.language_conversion():
         firstauthor = firstauthor.replace(LV, PV).replace(UV, PV)
         author_directory = author_directory.replace(LV, CV).replace(UV, CV)
         bibtex_entry['author'] = bibtex_entry['author'].replace(UV, LV)
@@ -182,11 +169,11 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- encode as utf-8
     firstauthor = firstauthor.encode('utf-8')
     #-- remove line skips and series of whitespace from title
-    bibtex_entry['title'] = re.sub('\s+',' ',bibtex_entry['title'])
+    bibtex_entry['title'] = re.sub(r'\s+',' ',bibtex_entry['title'])
     #-- remove spaces, dashes and apostrophes from author_directory
-    author_directory = re.sub('\s','_',author_directory)
-    author_directory = re.sub('\-|\'','',author_directory)
-    year_directory, = re.findall('\d+',bibtex_entry['year'])
+    author_directory = re.sub(r'\s','_',author_directory)
+    author_directory = re.sub(r'\-|\'','',author_directory)
+    year_directory, = re.findall(r'\d+',bibtex_entry['year'])
 
     #-- create list of article keywords if present in bibliography file
     if bibtex_keywords:
@@ -196,13 +183,13 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     doi = bibtex_entry['doi'] if 'doi' in bibtex_entry.keys() else None
     title = bibtex_entry['title'] if 'title' in bibtex_entry.keys() else None
     #-- calculate the universal citekey
-    univ_key = gen_citekey(firstauthor.decode('utf-8'),
-        bibtex_entry['year'],doi,title)
+    univ_key = reference_toolkit.gen_citekey(firstauthor.decode('utf-8'),
+        bibtex_entry['year'], doi, title)
 
     #-- if printing to file: output bibtex file for author and year
     if OUTPUT:
         #-- parse universal citekey to generate output filename
-        authkey,citekey,=re.findall('(\D+)\:(\d+\D+)',univ_key).pop()
+        authkey,citekey,=re.findall(r'(\D+)\:(\d+\D+)',univ_key).pop()
         bibtex_file = '{0}-{1}.bib'.format(authkey,citekey)
         #-- output directory
         bibtex_dir = os.path.join(datapath,year_directory,author_directory)
@@ -221,7 +208,7 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     #-- for each field within the entry
     for s,k,v in sorted(field_tuple):
         #-- make sure ampersands are in latex format (marked with symbol)
-        v = re.sub('(?<=\s)\&','\\\&',v) if re.search('(?<=\s)\&',v) else v
+        v = re.sub(r'(?<=\s)\&',r'\\\&',v) if re.search(r'(?<=\s)\&',v) else v
         #-- do not put the month field in brackets
         if (k == 'month'):
             print('{0} = {1},'.format(k,v.lower()),file=fid)

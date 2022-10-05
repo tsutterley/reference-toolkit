@@ -37,7 +37,7 @@ def doiopen(DOI, VERBOSE=False):
 def crossrefopen(DOI, VERBOSE=False):
     #-- Open URL for DOI in a new tab, if browser window is already open
     URL = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(doi))
+        urllib.parse.quote_plus(DOI))
     print(URL) if VERBOSE else None
     webbrowser.open_new_tab(URL)
 

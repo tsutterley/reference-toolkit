@@ -1,0 +1,6 @@
+import reference_toolkit.version
+from reference_toolkit.gen_citekeys import gen_citekey
+from reference_toolkit.language_conversion import language_conversion
+from reference_toolkit.read_referencerc import read_referencerc, get_data_path
+# get version number
+__version__ = reference_toolkit.version.version
