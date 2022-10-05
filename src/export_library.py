@@ -26,13 +26,8 @@ import sys
 import re
 import os
 import time
-import inspect
 import argparse
-from read_referencerc import read_referencerc
-
-#-- current file path for the program
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-filepath = os.path.dirname(os.path.abspath(filename))
+import reference_toolkit
 
 #-- PURPOSE: create a named list with named attributes for each BibTeX entry
 class BibTeX:
@@ -48,17 +43,20 @@ class BibTeX:
 #-- exports as a single file sorted by BibTeX key
 def export_library(SORT=None, EXPORT=None):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     #-- valid BibTeX entry types
     bibtex_entry_types = ['article','book','booklet','conference','inbook',
         'incollection','inproceedings','manual','mastersthesis','phdthesis',
         'proceedings','techreport','unpublished','webpage']
-    entry_regex = '[?<=\@](' + '|'.join([i for i in bibtex_entry_types]) + \
-        ')\{(.*?),'
+    entry_regex = r'[?<=\@](' + r'|'.join(bibtex_entry_types) + r')\{(.*?),'
     R1 = re.compile(entry_regex, flags=re.IGNORECASE)
 
     #-- if exporting to a single file or standard output
-    fid = open(os.path.expanduser(EXPORT), 'w') if EXPORT else sys.stdout
+    if EXPORT:
+        fid = open(os.path.expanduser(EXPORT), mode="w", encoding="utf8")
+    else:
+        fid = sys.stdout
 
     #-- sorting operators
     if (SORT == 'author'):
@@ -71,7 +69,7 @@ def export_library(SORT=None, EXPORT=None):
     #-- Python list with all BibTeX entries
     bibtex_entries = []
     #-- iterate over yearly directories
-    years = [sd for sd in os.listdir(datapath) if re.match('\d+',sd) and
+    years = [sd for sd in os.listdir(datapath) if re.match(r'\d+',sd) and
         os.path.isdir(os.path.join(datapath,sd))]
     for Y in sorted(years):
         #-- find author directories in year
@@ -80,10 +78,11 @@ def export_library(SORT=None, EXPORT=None):
         for A in sorted(authors):
             #-- find BibTeX files within author directory
             bibtex_files = [fi for fi in os.listdir(os.path.join(datapath,Y,A))
-                if re.match('(.*?)-(.*?).bib$',fi)]
+                if re.match(r'(.*?)-(.*?).bib$',fi)]
             #-- read each BibTeX file
             for fi in bibtex_files:
-                with open(os.path.join(datapath,Y,A,fi), 'r') as f:
+                bibtex_file = os.path.join(datapath,Y,A,fi)
+                with open(bibtex_file, mode="r", encoding="utf-8") as f:
                     bibtex_entry = f.read()
                 #-- extract BibTeX citekeys
                 bibtype,bibkey = R1.findall(bibtex_entry.lower()).pop()

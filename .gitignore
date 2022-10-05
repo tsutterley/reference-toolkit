@@ -9,7 +9,6 @@
 *.pyc
 *.m~
 *.m~~
- 
 # Packages #
 ############
 *.7z
@@ -20,17 +19,23 @@
 *.rar
 *.tar
 *.zip
- 
 # Logs and databases #
 ######################
 *.log
 *.sql
 *.sqlite
-*.gmtcommands4
-*.gmtdefaults4
-.RData
-.Rhistory
-
+__pycache__
+build/
+dist/
+develop-eggs/
+run/
+wheels/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache
+pythonenv*/
 # OS generated files #
 ######################
 .DS_Store
@@ -40,7 +45,6 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-
 # LaTeX and Vim #
 ######################
 *.aux

@@ -33,7 +33,7 @@ import os
 import shutil
 import inspect
 import argparse
-from read_referencerc import read_referencerc
+import reference_toolkit
 
 #-- current file path for the program
 filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -44,7 +44,8 @@ filepath = os.path.dirname(os.path.abspath(filename))
 def sync_library(DIRECTORY, PULL=False, LIST=False, VERBOSE=False,
     CLOBBER=False, MODE=0o775):
     #-- get reference filepath and reference format from referencerc file
-    datapath,dataformat=read_referencerc(os.path.join(filepath,'.referencerc'))
+    referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
+    datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
 
     #-- if transferring from DIRECTORY to library
     d_in,d_out = (DIRECTORY,datapath) if PULL else (datapath,DIRECTORY)
@@ -60,7 +61,7 @@ def sync_library(DIRECTORY, PULL=False, LIST=False, VERBOSE=False,
             os.path.isdir(os.path.join(d_in,Y,sd))]
         for A in sorted(authors):
             #-- find BibTeX and article files within author directory
-            regex = '((.*?)-(.*?)\.bib$)|({0}_(.*?)_{1}(.*?)$)'.format(A,Y)
+            regex = r'((.*?)-(.*?)\.bib$)|({0}_(.*?)_{1}(.*?)$)'.format(A,Y)
             FILES = [f for f in os.listdir(os.path.join(d_in,Y,A))
                 if re.match(regex,f)]
             #-- transfer each article file (check if existing)
