@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-gen_citekeys.py (09/2022)
+gen_citekeys.py (03/2023)
 Generates Papers2-like cite keys for BibTeX
 
 Enter Author names and publication years
@@ -26,7 +26,7 @@ COMMAND LINE OPTIONS:
         if the DOI is not available
 
 PROGRAM DEPENDENCIES:
-    language_conversion.py: Outputs map for converting symbols between languages
+    language_conversion.py: mapping to convert symbols between languages
 
 NOTES:
     Papers2 Universal Citekey generation javascript
@@ -34,6 +34,7 @@ NOTES:
     Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 03/2023: use numpy doc syntax for docstrings
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
     Updated 10/2019: strip title of leading and trailing whitespace before hash
@@ -55,77 +56,96 @@ import argparse
 import binascii
 from reference_toolkit.language_conversion import language_conversion
 
-#-- PURPOSE: create a Papers2-like cite key using the DOI
-def gen_citekey(author,year,doi,title):
-    #-- 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
+# PURPOSE: create a Papers2-like cite key using the DOI
+def gen_citekey(author, year, doi, title):
+    """Generates Papers2-like cite keys for BibTeX
+
+    Parameters
+    ----------
+    author: str
+        Surname of lead author of publication
+    year: str
+        Corresponding publication year
+    doi: str
+        Digital Object Identifier (DOI) of the publication
+    title: str
+        Corresponding publication title
+    """
+    # 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
     for LV, CV, UV, PV in language_conversion():
         author = author.replace(UV, PV)
-    #-- replace symbols
-    author = re.sub(b'\s|\-|\'',b'',author.encode('utf-8')).decode('utf-8')
+    # replace symbols
+    author = re.sub(br'\s|\-|\'', br'', author.encode('utf-8')).decode('utf-8')
 
-    #-- create citekey suffix first attempting:
-    #-- a DOI-based universal citekey
-    #-- then attempting a title-based universal citekey
-    #-- finally generating a random citekey (non-universal)
+    # create citekey suffix first attempting:
+    # a DOI-based universal citekey
+    # then attempting a title-based universal citekey
+    # finally generating a random citekey (non-universal)
     if doi:
-        #-- convert to unsigned 32-bit int if needed
+        # convert to unsigned 32-bit int if needed
         crc = binascii.crc32(doi.encode('utf-8')) & 0xffffffff
-        #-- generate individual hashes
+        # generate individual hashes
         hash1 = chr(int(ord('b') + math.floor((crc % (10*26))/26)))
         hash2 = chr(int(ord('a') + (crc % 26)))
-        #-- concatenate to form DOI-based universal citekey suffix
+        # concatenate to form DOI-based universal citekey suffix
         key = hash1 + hash2
     elif title:
-        #-- scrub special characters from title and set as lowercase
-        title = re.sub(r'[\_\-\=\/\|\.\{\}]',' ',title.lower())
-        title = ''.join(re.findall(r'[a-zA-Z0-9\s]',title))
-        #-- convert to unsigned 32-bit int if needed
+        # scrub special characters from title and set as lowercase
+        title = re.sub(r'[\_\-\=\/\|\.\{\}]', ' ', title.lower())
+        title = ''.join(re.findall(r'[a-zA-Z0-9\s]', title))
+        # convert to unsigned 32-bit int if needed
         crc = binascii.crc32(title.strip().encode('utf-8')) & 0xffffffff
-        #-- generate individual hashes
+        # generate individual hashes
         hash1 = chr(int(ord('t') + math.floor((crc % (4*26))/26)))
         hash2 = chr(int(ord('a') + (crc % 26)))
-        #-- concatenate to form title-based universal citekey suffix
+        # concatenate to form title-based universal citekey suffix
         key = hash1 + hash2
     else:
-        key = ''.join(random.sample(string.ascii_lowercase,2))
-    #-- return the final citekey from the function
-    return '{0}:{1}{2}'.format(author,year,key)
+        key = ''.join(random.sample(string.ascii_lowercase, 2))
 
-#-- main program that calls gen_citekey()
-def main():
-    #-- Read the system arguments listed after the program
+    # return the final citekey from the function
+    return f'{author}:{year}{key}'
+
+# PURPOSE: create argument parser
+def arguments():
     parser = argparse.ArgumentParser(
-        description="""Copies a journal article from a website to the reference
-            local directory
+        description="""Generates Papers2-like cite keys for BibTeX
             """
     )
-    #-- command line parameters
-    parser.add_argument('--author','-A',
+    # command line parameters
+    parser.add_argument('--author', '-A',
         type=str, nargs='+',
         help='Lead author of publication')
-    parser.add_argument('--year','-Y',
+    parser.add_argument('--year', '-Y',
         type=str, nargs='+',
         help='Corresponding publication year')
-    parser.add_argument('--doi','-D',
+    parser.add_argument('--doi', '-D',
         type=str, nargs='+',
         help='Digital Object Identifier (DOI) of the publication')
-    parser.add_argument('--title','-T',
+    parser.add_argument('--title', '-T',
         type=str, nargs='+',
         help='Corresponding publication title')
+    # return the parser
+    return parser
+
+# main program that calls gen_citekey()
+def main():
+    # Read the system arguments listed after the program
+    parser = arguments()
     args = parser.parse_args()
 
-    #-- if not using DOIs to set citekeys
+    # if not using DOIs to set citekeys
     if args.doi is None:
         args.doi = [None]*len(args.author)
-    #-- if not using titles to set citekeys
+    # if not using titles to set citekeys
     if args.title is None:
         args.title = [None]*len(args.author)
 
-    #-- run for each author-year pair
-    for A,Y,D,T in zip(args.author,args.year,args.doi,args.title):
-        citekey = gen_citekey(A,Y,D,T)
+    # run for each author-year pair
+    for A, Y, D, T in zip(args.author, args.year, args.doi, args.title):
+        citekey = gen_citekey(A, Y, D, T)
         print(citekey)
 
-#-- run main program
+# run main program
 if __name__ == '__main__':
     main()
