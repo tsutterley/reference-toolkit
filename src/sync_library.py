@@ -18,7 +18,7 @@ COMMAND LINE OPTIONS:
     -M X, --mode X: Permission mode of files transferred
 
 PROGRAM DEPENDENCIES:
-    read_referencerc.py: Sets default file path and file format for output files
+    utilities.py: Sets default file path and file format for output files
 
 UPDATE HISTORY:
     Updated 05/2023: use pathlib to find and operate on paths

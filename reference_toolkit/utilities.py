@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 u"""
-read_referencerc.py (05/2023)
+utilities.py (05/2023)
 Reads the supplied referencerc file for default file path and file format
 
 UPDATE HISTORY:
     Updated 05/2023: use pathlib to find and operate on paths
+        added more file operation functions and renamed to utilities.py
     Updated 03/2023: use numpy doc syntax for docstrings
     Updated 09/2022: drop python2 compatibility
     Updated 02/2018: using str instead of unicode for python3 compatibility
@@ -59,3 +60,37 @@ def read_referencerc(referencerc_file):
     datapath = pathlib.Path(parameters['datapath']).expanduser().absolute()
     dataformat = str(parameters['dataformat'])
     return datapath, dataformat
+
+# PURPOSE: open a unique filename adding a numerical instance if existing
+def create_unique_filename(filename):
+    # create counter to add to the end of the filename if existing
+    counter = 1
+    while counter:
+        try:
+            # open file descriptor only if the file doesn't exist
+            fd = filename.open(mode='xb')
+        except OSError:
+            pass
+        else:
+            print(str(compressuser(filename)))
+            return fd
+        # new filename adds counter the between fileBasename and fileExtension
+        filename = filename.with_name(f'{filename.stem}-{counter:d}{filename.suffix}')
+        counter += 1
+
+def compressuser(filename):
+    """
+    Tilde-compresses a file to be relative to the home directory
+
+    Parameters
+    ----------
+    filename: str
+        outptu filename
+    """
+    filename = pathlib.Path(filename).expanduser().absolute()
+    try:
+        relative_to = filename.relative_to(pathlib.Path().home())
+    except ValueError as exc:
+        return filename
+    else:
+        return pathlib.Path('~').joinpath(relative_to)

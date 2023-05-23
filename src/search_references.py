@@ -20,7 +20,7 @@ COMMAND LINE OPTIONS:
     -E X, --export X: export all found matches to a single bibtex file
 
 PROGRAM DEPENDENCIES:
-    read_referencerc.py: Sets default file path and file format for output files
+    utilities.py: Sets default file path and file format for output files
     language_conversion.py: mapping to convert symbols between languages
 
 UPDATE HISTORY:

@@ -24,7 +24,7 @@ PYTHON DEPENDENCIES:
         http://python-future.org/
 
 PROGRAM DEPENDENCIES:
-    read_referencerc.py: Sets default file path and file format for output files
+    utilities.py: Sets default file path and file format for output files
     language_conversion.py: mapping to convert symbols between languages
 
 NOTES:
@@ -141,44 +141,11 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
     local_file = directory.joinpath(dataformat.format(*args))
 
     # open input file and copy contents to local file
-    with open(fi, 'rb') as f_in, create_unique_filename(local_file) as f_out:
-        shutil.copyfileobj(f_in, f_out)
+    with open(fi, 'rb') as f_in, \
+        reference_toolkit.create_unique_filename(local_file) as f_out:
+            shutil.copyfileobj(f_in, f_out)
     # remove the input file
     fi.unlink() if CLEANUP else None
-
-# PURPOSE: open a unique filename adding a numerical instance if existing
-def create_unique_filename(filename):
-    # create counter to add to the end of the filename if existing
-    counter = 1
-    while counter:
-        try:
-            # open file descriptor only if the file doesn't exist
-            fd = filename.open(mode='xb')
-        except OSError:
-            pass
-        else:
-            print(str(compressuser(filename)))
-            return fd
-        # new filename adds counter the between fileBasename and fileExtension
-        filename = f'{filename.stem}-{counter:d}{filename.suffix}'
-        counter += 1
-
-def compressuser(filename):
-    """
-    Tilde-compresses a file to be relative to the home directory
-
-    Parameters
-    ----------
-    filename: str
-        outptu filename
-    """
-    filename = pathlib.Path(filename).expanduser().absolute()
-    try:
-        relative_to = filename.relative_to(pathlib.Path().home())
-    except ValueError as exc:
-        return filename
-    else:
-        return pathlib.Path('~').joinpath(relative_to)
 
 # main program that calls smart_move_articles()
 def main():

@@ -10,7 +10,7 @@ COMMAND LINE OPTIONS:
 
 PROGRAM DEPENDENCIES:
     gen_citekeys.py: Generates Papers2-like cite keys for BibTeX
-    read_referencerc.py: Sets default file path and file format for output files
+    utilities.py: Sets default file path and file format for output files
     language_conversion.py: mapping to convert symbols between languages
 
 NOTES:
