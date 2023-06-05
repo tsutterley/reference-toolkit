@@ -297,7 +297,7 @@ def main():
     for FILE in args.infile:
         # run for the input file
         with FILE.open(mode='r', encoding='utf-8') as f:
-            file_contents = f.read()
+            file_contents = f.readlines()
         try:
             ris_to_bibtex(file_contents,
                 OUTPUT=args.output,
