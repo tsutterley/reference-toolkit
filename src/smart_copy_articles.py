@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (05/2023)
+smart_copy_articles.py (11/2023)
 Copies journal articles and supplements from a website to a local directory
      using information from crossref.org
 
@@ -30,6 +30,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -44,7 +45,6 @@ UPDATE HISTORY:
 from __future__ import print_function
 
 import re
-import ssl
 import json
 import shutil
 import pathlib
@@ -53,21 +53,6 @@ import posixpath
 import urllib.parse
 import urllib.request
 import reference_toolkit
-
-# PURPOSE: check internet connection and URL
-def check_connection(remote_url, timeout=20):
-    # attempt to connect to remote url
-    try:
-        urllib.request.urlopen(remote_url,
-            timeout=timeout,
-            context=ssl.SSLContext()
-        )
-    except urllib.request.HTTPError:
-        raise RuntimeError(f'Check URL: {remote_url}')
-    except urllib.request.URLError:
-        raise RuntimeError('Check internet connection')
-    else:
-        return True
 
 # PURPOSE: create directories and copy a reference file after formatting
 def smart_copy_articles(remote_file,doi,SUPPLEMENT):
@@ -79,13 +64,12 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     # get extension from file (assume pdf if extension cannot be extracted)
     fileExtension = fi.suffix if fi.suffix else '.pdf'
 
-    # ssl context
-    context = ssl.SSLContext()
     # open connection with crossref.org for DOI
     crossref = posixpath.join('https://api.crossref.org','works',
         urllib.parse.quote_plus(doi))
     request = urllib.request.Request(url=crossref)
-    response = urllib.request.urlopen(request,timeout=60,context=context)
+    context = reference_toolkit.utilities._default_ssl_context
+    response = urllib.request.urlopen(request, timeout=60, context=context)
     resp = json.loads(response.read())
 
     # get author and replace unicode characters in author with plain text
@@ -183,8 +167,10 @@ def main():
     args = parser.parse_args()
 
     # check connection to url and then download article
-    if check_connection(args.url):
-        smart_copy_articles(args.url,args.doi,args.supplement)
+    crossref = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(args.doi))
+    if reference_toolkit.check_connection(crossref):
+        smart_copy_articles(args.url, args.doi, args.supplement)
 
 # run main program
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-copy_journal_articles.py (05/2023)
+copy_journal_articles.py (11/2023)
 Copies journal articles and supplements from a website to a local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
@@ -35,6 +35,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -48,27 +49,11 @@ UPDATE HISTORY:
 from __future__ import print_function
 
 import re
-import ssl
 import shutil
 import pathlib
 import argparse
 import urllib.request
 import reference_toolkit
-
-# PURPOSE: check internet connection and URL
-def check_connection(remote_url, timeout=20):
-    # attempt to connect to remote url
-    try:
-        urllib.request.urlopen(remote_url,
-            timeout=timeout,
-            context=ssl.SSLContext()
-        )
-    except urllib.request.HTTPError:
-        raise RuntimeError(f'Check URL: {remote_url}')
-    except urllib.request.URLError:
-        raise RuntimeError('Check internet connection')
-    else:
-        return True
 
 # PURPOSE: create directories and copy a reference file after formatting
 def copy_journal_articles(remote,author,journal,year,volume,number,SUPPLEMENT):
@@ -129,7 +114,8 @@ def copy_journal_articles(remote,author,journal,year,volume,number,SUPPLEMENT):
     # transfer should work properly with ascii and binary data formats
     headers = {'User-Agent':"Magic Browser"}
     request = urllib.request.Request(remote, headers=headers)
-    f_in = urllib.request.urlopen(request, timeout=20, context=ssl.SSLContext())
+    context = reference_toolkit.utilities._default_ssl_context
+    f_in = urllib.request.urlopen(request, timeout=20, context=context)
     with reference_toolkit.create_unique_filename(local_file) as f_out:
         shutil.copyfileobj(f_in, f_out, CHUNK)
     f_in.close()
@@ -161,7 +147,7 @@ def main():
     args = parser.parse_args()
 
     # check connection to url and then download article
-    if check_connection(args.url):
+    if reference_toolkit.check_connection(args.url):
         copy_journal_articles(args.url, args.author, args.journal, args.year,
             args.volume, args.number, args.supplement)
 

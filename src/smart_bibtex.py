@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (05/2023)
+smart_bibtex.py (11/2023)
 Creates a bibtex entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -29,6 +29,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -45,10 +46,7 @@ from __future__ import print_function
 
 import sys
 import re
-import ssl
 import json
-import inspect
-import pathlib
 import datetime
 import argparse
 import posixpath
@@ -56,36 +54,18 @@ import urllib.request
 import urllib.parse
 import reference_toolkit
 
-# PURPOSE: check internet connection and URL
-def check_connection(doi, timeout=20):
-    # attempt to connect to remote url
-    remote_url = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(doi))
-    try:
-        urllib.request.urlopen(remote_url,
-            timeout=timeout,
-            context=ssl.SSLContext()
-        )
-    except urllib.request.HTTPError:
-        raise RuntimeError(f'Check URL: {remote_url}')
-    except urllib.request.URLError:
-        raise RuntimeError('Check internet connection')
-    else:
-        return True
-
 # PURPOSE: create a formatted bibtex entry for a doi
 def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     # get reference filepath and reference format from referencerc file
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
 
-    # ssl context
-    context = ssl.SSLContext()
     # open connection with crossref.org for DOI
     crossref = posixpath.join('https://api.crossref.org','works',
         urllib.parse.quote_plus(doi))
     request = urllib.request.Request(url=crossref)
-    response = urllib.request.urlopen(request,timeout=60,context=context)
+    context = reference_toolkit.utilities._default_ssl_context
+    response = urllib.request.urlopen(request, timeout=60, context=context)
     resp = json.loads(response.read())
 
     # sort bibtex fields in output
@@ -221,7 +201,8 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         # create file object for output file
         bibtex_file = bibtex_dir.joinpath(f'{authkey}-{citekey}.bib')
         fid = bibtex_file.open(mode='w', encoding='utf-8')
-        print(f'  --> {str(compressuser(bibtex_file))}') if VERBOSE else None
+        compressed = reference_toolkit.compressuser(bibtex_file)
+        print(f'  --> {str(compressed)}') if VERBOSE else None
     else:
         fid = sys.stdout
 
@@ -247,23 +228,6 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     if OUTPUT:
         fid.close()
 
-def compressuser(filename):
-    """
-    Tilde-compresses a file to be relative to the home directory
-
-    Parameters
-    ----------
-    filename: str
-        outptu filename
-    """
-    filename = pathlib.Path(filename).expanduser().absolute()
-    try:
-        relative_to = filename.relative_to(pathlib.Path().home())
-    except ValueError as exc:
-        return filename
-    else:
-        return pathlib.Path('~').joinpath(relative_to)
-
 # main program that calls smart_bibtex()
 def main():
     # Read the system arguments listed after the program
@@ -285,9 +249,11 @@ def main():
     args = parser.parse_args()
 
     # run for each DOI entered after the program
-    for DOI in args.doi:
-        if check_connection(DOI):
-            smart_bibtex(DOI, OUTPUT=args.output, VERBOSE=args.verbose)
+    for doi in args.doi:
+        crossref = posixpath.join('https://api.crossref.org','works',
+            urllib.parse.quote_plus(doi))
+        if reference_toolkit.check_connection(crossref):
+            smart_bibtex(doi, OUTPUT=args.output, VERBOSE=args.verbose)
 
 # run main program
 if __name__ == '__main__':

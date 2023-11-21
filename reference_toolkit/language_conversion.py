@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-conversions.py (03/2023)
+conversions.py (11/2023)
 Mapping for converting to/from python unicode for special characters
     1st column: latex format for output bibtex files
     2nd column: character with combining modifier unicode
@@ -8,14 +8,15 @@ Mapping for converting to/from python unicode for special characters
     4th column: plain text "equivalent" (scrubbed of symbols for citekeys)
 
 OPTIONS:
-    GREEK: iterate through Greek letters
-    SYMBOLS: iterate through miscellaneous symbols
+    greek: iterate through Greek letters
+    symbols: iterate through miscellaneous symbols
 
 NOTES:
     Check unicode characters with http://www.fileformat.info/
         can add more entries to conversions
 
 UPDATE HISTORY:
+    Updated 11/2023: lower case kwargs for greek and symbols
     Updated 03/2023: use numpy doc syntax for docstrings
     Updated 12/2019: added letters with acute, stroke and ogonek
     Updated 04/2018: added A with tilde and C with acute
@@ -24,14 +25,14 @@ UPDATE HISTORY:
         added uppercase and lowercase y with diaeresis
     Written 05/2017: extracted from individual programs and added entries
 """
-def language_conversion(GREEK=True, SYMBOLS=True):
+def language_conversion(greek=True, symbols=True):
     """Mapping for converting to/from python unicode for special characters
 
     Parameters
     ----------
-    GREEK: bool
+    greek: bool
         Iterate through Greek letters
-    SYMBOLS: bool
+    symbols: bool
         Iterate through miscellaneous symbols
     """
     # 1st column: latex
@@ -185,7 +186,7 @@ def language_conversion(GREEK=True, SYMBOLS=True):
     conversions.append((r'{\c c}', 'c\u0327', '\u00E7', 'c'))
 
     # if iterating through Greek letters
-    if GREEK:
+    if greek:
         # Greek uppercase letters
         conversions.append((r'{$\Gamma$}', '\u0393', '\u0393', 'G'))
         conversions.append((r'{$\Delta$}', '\u0394', '\u0394', 'D'))
@@ -225,7 +226,7 @@ def language_conversion(GREEK=True, SYMBOLS=True):
         conversions.append((r'{$\omega$}', '\u03C9', '\u03C9', 'w'))
 
     # if iterating through symbols
-    if SYMBOLS:
+    if symbols:
         # Miscellaneous Symbols
         conversions.append((" ", '\u2009', '\u2009', " "))
         conversions.append(("`", '\u2018', '\u2018', "'"))
