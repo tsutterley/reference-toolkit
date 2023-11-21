@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 u"""
-utilities.py (05/2023)
+utilities.py (11/2023)
 Reads the supplied referencerc file for default file path and file format
 
 UPDATE HISTORY:
+    Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
         added more file operation functions and renamed to utilities.py
     Updated 03/2023: use numpy doc syntax for docstrings
@@ -11,9 +12,14 @@ UPDATE HISTORY:
     Updated 02/2018: using str instead of unicode for python3 compatibility
     Written 10/2017
 """
+from __future__ import annotations
+
+import sys
 import re
+import ssl
 import inspect
 import pathlib
+import urllib.request
 
 # PURPOSE: get absolute path within a package from a relative path
 def get_data_path(relpath: list | str | pathlib.Path):
@@ -35,7 +41,7 @@ def get_data_path(relpath: list | str | pathlib.Path):
         return filepath.joinpath(relpath)
 
 # PURPOSE: read referencerc file and extract parameters
-def read_referencerc(referencerc_file):
+def read_referencerc(referencerc_file: str | pathlib.Path):
     """Read referencerc fil
 
     Parameters
@@ -62,9 +68,10 @@ def read_referencerc(referencerc_file):
     return datapath, dataformat
 
 # PURPOSE: open a unique filename adding a numerical instance if existing
-def create_unique_filename(filename):
+def create_unique_filename(filename: str | pathlib.Path):
     # create counter to add to the end of the filename if existing
     counter = 1
+    filename = pathlib.Path(filename).expanduser().absolute()
     while counter:
         try:
             # open file descriptor only if the file doesn't exist
@@ -78,7 +85,7 @@ def create_unique_filename(filename):
         filename = filename.with_name(f'{filename.stem}-{counter:d}{filename.suffix}')
         counter += 1
 
-def compressuser(filename):
+def compressuser(filename: str | pathlib.Path):
     """
     Tilde-compresses a file to be relative to the home directory
 
@@ -94,3 +101,64 @@ def compressuser(filename):
         return filename
     else:
         return pathlib.Path('~').joinpath(relative_to)
+
+def _create_default_ssl_context() -> ssl.SSLContext:
+    """Creates the default SSL context
+    """
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    _set_ssl_context_options(context)
+    context.options |= ssl.OP_NO_COMPRESSION
+    return context
+
+def _create_ssl_context_no_verify() -> ssl.SSLContext:
+    """Creates an SSL context for unverified connections
+    """
+    context = _create_default_ssl_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
+
+def _set_ssl_context_options(context: ssl.SSLContext) -> None:
+    """Sets the default options for the SSL context
+    """
+    if sys.version_info >= (3, 10) or ssl.OPENSSL_VERSION_INFO >= (1, 1, 0, 7):
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+    else:
+        context.options |= ssl.OP_NO_SSLv2
+        context.options |= ssl.OP_NO_SSLv3
+        context.options |= ssl.OP_NO_TLSv1
+        context.options |= ssl.OP_NO_TLSv1_1
+
+# default ssl context
+_default_ssl_context = _create_ssl_context_no_verify()
+
+# PURPOSE: check internet connection and URL
+def check_connection(
+        HOST: str,
+        timeout: int | None = 20,
+        context: ssl.SSLContext = _default_ssl_context,
+    ):
+    """
+    Check internet connection with http host
+
+    Parameters
+    ----------
+    HOST: str
+        remote http host
+    timeout: int
+        timeout in seconds for blocking operations
+    context: obj, default reference_toolkit.utilities._default_ssl_context
+        SSL context for ``urllib`` opener object
+    """
+    # attempt to connect to remote url
+    try:
+        urllib.request.urlopen(HOST,
+            timeout=timeout,
+            context=context
+        )
+    except urllib.request.HTTPError:
+        raise RuntimeError(f'Check URL: {HOST}')
+    except urllib.request.URLError:
+        raise RuntimeError('Check internet connection')
+    else:
+        return True

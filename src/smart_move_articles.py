@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_move_articles.py (05/2023)
+smart_move_articles.py (11/2023)
 Moves journal articles and supplements to the reference local directory
     using information from crossref.org
 
@@ -34,6 +34,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -48,7 +49,6 @@ UPDATE HISTORY:
 from __future__ import print_function
 
 import re
-import ssl
 import json
 import shutil
 import pathlib
@@ -66,13 +66,12 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
     # get extension from file (assume pdf if extension cannot be extracted)
     fileExtension = fi.suffix if fi.suffix else '.pdf'
 
-    # ssl context
-    context = ssl.SSLContext()
     # open connection with crossref.org for DOI
     crossref = posixpath.join('https://api.crossref.org','works',
         urllib.parse.quote_plus(doi))
     request = urllib.request.Request(url=crossref)
-    response = urllib.request.urlopen(request,timeout=60,context=context)
+    context = reference_toolkit.utilities._default_ssl_context
+    response = urllib.request.urlopen(request, timeout=60, context=context)
     resp = json.loads(response.read())
 
     # get author and replace unicode characters in author with plain text
@@ -170,7 +169,10 @@ def main():
     args = parser.parse_args()
 
     # move article file to reference directory
-    smart_move_articles(args.infile, args.doi, args.supplement, args.cleanup)
+    crossref = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(args.doi))
+    if reference_toolkit.check_connection(crossref):
+        smart_move_articles(args.infile, args.doi, args.supplement, args.cleanup)
 
 # run main program
 if __name__ == '__main__':
