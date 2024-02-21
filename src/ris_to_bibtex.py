@@ -52,14 +52,14 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     # easily mappable RIS and bibtex fields
-    bibtex_field_map = {'JO':'journal','T2':'journal','VL':'volume',
+    bibtex_field_map = {'JF':'journal','JO':'journal','T2':'journal','VL':'volume',
         'IS':'number','PB':'publisher','SN':'issn','UR':'url'}
     # map between RIS TY entries and bibtex entries
     bibtex_entry_map = {'JOUR':'article','EJOU':'article','BOOK':'book',
         'CHAP':'inbook','CONF':'proceedings','RPRT':'techreport',
         'THES':'phdthesis'}
     # fields of interest for parsing an RIS file
-    RIS_fields = ['TY','AU','A1','A2','ED','TI','T1','T2','JA','JO','PY','Y1',
+    RIS_fields = ['TY','AU','A1','A2','ED','TI','T1','T2','JA','JF','JO','PY','Y1',
         'VL','IS','SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','DOI','N1',
         'KW','AB','KW']
     # regular expression for reading RIS files
@@ -243,8 +243,11 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
         # make sure ampersands are in latex format
         v = re.sub(r'(?<=\s)\&','\\\&',v) if re.search(r'(?<=\s)\&',v) else v
         # do not put the month field in brackets
+        # do not print empty fields
         if (k == 'month'):
             print('{0} = {1},'.format(k,v.rstrip()),file=fid)
+        elif not v:
+            continue
         else:
             print('{0} = {{{1}}},'.format(k,v.rstrip()),file=fid)
     print('}',file=fid)
