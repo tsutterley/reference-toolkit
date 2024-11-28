@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-copy_journal_articles.py (11/2023)
+copy_journal_articles.py (11/2024)
 Copies journal articles and supplements from a website to a local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
@@ -35,6 +35,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2024: remove colons from journal names
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -61,7 +62,7 @@ def copy_journal_articles(remote,author,journal,year,volume,number,SUPPLEMENT):
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     # input remote file scrubbed of any additional html information
-    fi = pathlib.Path(re.sub(r'\?[\_a-z]{1,4}\=(.*?)$','',remote))
+    fi = pathlib.Path(re.sub(r'\?[\_a-z]{1,4}\=(.*?)$',r'',remote))
     # get extension from file (assume pdf if extension cannot be extracted)
     fileExtension = fi.suffix if fi.suffix else '.pdf'
 
@@ -80,7 +81,8 @@ def copy_journal_articles(remote,author,journal,year,volume,number,SUPPLEMENT):
     # else use the found journal abbreviation
     if not bool(rx.search(abbreviation_contents)):
         print(f'Abbreviation for {journal} not found')
-        abbreviation = journal
+        # remove colons from journal name
+        abbreviation = re.sub(r':',r'',journal)
     else:
         abbreviation = rx.findall(abbreviation_contents)[0]
 

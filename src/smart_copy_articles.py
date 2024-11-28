@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (11/2023)
+smart_copy_articles.py (11/2024)
 Copies journal articles and supplements from a website to a local directory
      using information from crossref.org
 
@@ -30,6 +30,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2024: remove colons from journal names
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -60,7 +61,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     # input remote file scrubbed of any additional html information
-    fi = pathlib.Path(re.sub(r'\?[\_a-z]{1,4}\=(.*?)$','',remote_file))
+    fi = pathlib.Path(re.sub(r'\?[\_a-z]{1,4}\=(.*?)$',r'',remote_file))
     # get extension from file (assume pdf if extension cannot be extracted)
     fileExtension = fi.suffix if fi.suffix else '.pdf'
 
@@ -83,7 +84,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
         author = author.replace(UV, CV)
         journal = journal.replace(UV, PV)
     # remove spaces, dashes and apostrophes
-    author = re.sub('\s','_',author); author = re.sub(r'\-|\'','',author)
+    author = re.sub(r'\s',r'_',author); author = re.sub(r'\-|\'',r'',author)
 
     # get publication date (prefer date when in print)
     if 'published-print' in resp['message'].keys():
@@ -91,7 +92,7 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     elif 'published-online' in resp['message'].keys():
         date_parts, = resp['message']['published-online']['date-parts']
     # extract year from date parts and convert to string
-    year = '{0:4d}'.format(date_parts[0])
+    year = f'{date_parts[0]:4d}'
 
     # get publication volume and number
     vol = resp['message']['volume'] if 'volume' in resp['message'].keys() else ''
@@ -112,7 +113,8 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     # else use the found journal abbreviation
     if not bool(rx.search(abbreviation_contents)):
         print(f'Abbreviation for {journal} not found')
-        abbreviation = journal
+        # remove colons from journal name
+        abbreviation = re.sub(r':',r'',journal)
     else:
         abbreviation = rx.findall(abbreviation_contents)[0]
 

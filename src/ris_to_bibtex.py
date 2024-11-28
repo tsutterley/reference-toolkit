@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-ris_to_bibtex.py (05/2023)
+ris_to_bibtex.py (11/2024)
 Converts RIS bibliography files into bibtex files with Universal citekeys
     https://en.wikipedia.org/wiki/RIS_(file_format)
 
@@ -22,6 +22,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 11/2024: use f-strings for print statements
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -63,7 +64,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
         'VL','IS','SP','EP','LP','PB','SN','UR','L3','M3','ER','DO','DOI','N1',
         'KW','AB','KW']
     # regular expression for reading RIS files
-    RIS_regex = r'({0})\s+\-\s+(.*?)[\s]?$'.format('|'.join(RIS_fields))
+    RIS_regex = r'({0})\s+\-\s+(.*?)[\s]?$'.format(r'|'.join(RIS_fields))
     R1 = re.compile(RIS_regex, flags=re.IGNORECASE)
     # regular expression pattern to extract doi from webpages or "doi:"
     doi_regex = r'(doi\:[\s]?|http[s]?\:\/\/(dx\.)?doi\.org\/)?(10\.(.*?))$'
@@ -107,7 +108,7 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
             current_key['entrytype'] = bibtex_entry_map[RIS_value]
         elif RIS_field in ('TI','T1'):
             # format titles in double curly brackets
-            current_entry['title'] = '{{{0}}}'.format(RIS_value)
+            current_entry['title'] = f'{{{RIS_value}}}'
         elif RIS_field in ('AU','A1','A2','ED'):
             # check if author fields are initially uppercase: change to title
             RIS_value = RIS_value.title() if RIS_value.isupper() else RIS_value
@@ -143,26 +144,26 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
                     AGN=' '.join(re.findall(r'([A-Z])\.',AGN))
                 # add to current authors or editors list
                 if RIS_field in ('ED'):
-                    current_editors.append('{0}, {1}'.format(ALN,AGN))
+                    current_editors.append(f'{ALN}, {AGN}')
                 elif RIS_field in ('AU','A1','A2'):
-                    current_authors.append('{0}, {1}'.format(ALN,AGN))
+                    current_authors.append(f'{ALN}, {AGN}')
         elif RIS_field in ('PY','Y1'):
             # partition between publication date to YY/MM/DD
-            cal_date = [int(d) for d in re.findall(r'\d+',RIS_value)]
+            cal_date = [int(d) for d in re.findall(r'\d+', RIS_value)]
             # year = first entry
-            current_entry['year'] = '{0:4d}'.format(cal_date[0])
+            current_entry['year'] = f'{cal_date[0]:4d}'
             # months of the year
             if (len(cal_date) > 1):
                 # month = second entry
-                dt=datetime.datetime.strptime('{0:02d}'.format(cal_date[1]),'%m')
+                dt = datetime.datetime.strptime(f'{cal_date[1]:02d}','%m')
                 current_entry['month'] = dt.strftime('%b').lower()
-        elif (RIS_field == 'SP') and bool(re.search(r'\d+',RIS_value)):
+        elif (RIS_field == 'SP') and bool(re.search(r'\d+', RIS_value)):
             # add starting page to current_pages array
-            pages = [int(p) for p in re.findall(r'\d+',RIS_value)]
+            pages = [int(p) for p in re.findall(r'\d+', RIS_value)]
             current_pages[0] = pages[0]
             if (len(pages) > 1):
                 current_pages[1] = pages[1]
-        elif RIS_field in ('EP','LP') and bool(re.search(r'\d+',RIS_value)):
+        elif RIS_field in ('EP','LP') and bool(re.search(r'\d+', RIS_value)):
             # add ending page to current_pages array
             current_pages[1] = RIS_value
         elif RIS_field in ('L3','DO','N1','M3','DOI') and bool(R2.search(RIS_value)):
@@ -215,9 +216,9 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     if (current_pages[0] is None) and (current_pages[1] is None):
         current_entry['pages'] = 'n/a--n/a'
     elif (current_pages[1] is None):
-        current_entry['pages'] = '{0}'.format(current_pages[0])
+        current_entry['pages'] = str(current_pages[0])
     else:
-        current_entry['pages'] = '{0}--{1}'.format(*current_pages)
+        current_entry['pages'] = f'{current_pages[0]}--{current_pages[1]}'
 
     # if printing to file: output bibtex file for author and year
     if OUTPUT:
@@ -234,23 +235,24 @@ def ris_to_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
         fid = sys.stdout
 
     # print the bibtex citation
-    print('@{0}{{{1},'.format(current_key['entrytype'],current_key['citekey']),file=fid)
+    entrytype, citekey = current_key['entrytype'], current_key['citekey']
+    print(f'@{entrytype}{{{citekey},', file=fid)
     # sort output bibtex files as listed above
     field_indices = [bibtex_field_sort[b] for b in current_entry.keys()]
     field_tuple=zip(field_indices,current_entry.keys(),current_entry.values())
     # for each field within the entry
     for s,k,v in sorted(field_tuple):
         # make sure ampersands are in latex format
-        v = re.sub(r'(?<=\s)\&','\\\&',v) if re.search(r'(?<=\s)\&',v) else v
+        v = re.sub(r'(?<=\s)\&',r'\\\&',v) if re.search(r'(?<=\s)\&',v) else v
         # do not put the month field in brackets
         # do not print empty fields
         if (k == 'month'):
-            print('{0} = {1},'.format(k,v.rstrip()),file=fid)
+            print(f'{k} = {v.rstrip()},', file=fid)
         elif not v:
             continue
         else:
-            print('{0} = {{{1}}},'.format(k,v.rstrip()),file=fid)
-    print('}',file=fid)
+            print(f'{k} = {{{v.strip()}}},', file=fid)
+    print('}', file=fid)
 
     # close the output file
     if OUTPUT:

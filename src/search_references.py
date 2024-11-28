@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-search_references.py (05/2023)
+search_references.py (11/2024)
 Reads bibtex files for each article in a given set of years to search for
     keywords, authors, journal, etc using regular expressions
 
@@ -24,6 +24,7 @@ PROGRAM DEPENDENCIES:
     language_conversion.py: mapping to convert symbols between languages
 
 UPDATE HISTORY:
+    Updated 11/2024: use f-strings for print statements
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -84,7 +85,7 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
     # find directories of years
     regex_years = r'|'.join(YEAR) if YEAR else r'\d+'
     years = [sd for sd in datapath.iterdir() if
-        re.match(r'\d+',sd.name) and sd.is_dir()]
+        re.match(regex_years, sd.name) and sd.is_dir()]
     match_count = 0
     query_count = 0
     for Y in sorted(years):
@@ -141,8 +142,7 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
                 # add to total query count
                 query_count += 1
     # print the number of matching and number of queried references
-    args = (match_count, query_count)
-    print('Matching references = {0:d} out of {1:d} queried'.format(*args))
+    print(f'Matching references = {match_count:d} out of {query_count:d} queried')
     # close the exported bibtex file
     fid.close() if EXPORT else None
 

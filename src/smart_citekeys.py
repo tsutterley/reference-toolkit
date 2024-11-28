@@ -66,7 +66,7 @@ def smart_citekey(doi):
     for LV, CV, UV, PV in reference_toolkit.language_conversion():
         author = author.replace(UV, PV)
     # replace symbols
-    author = re.sub(b'\s|\-|\'',b'',author.encode('utf-8')).decode('utf-8')
+    author = re.sub(rb'\s|\-|\'',rb'',author.encode('utf-8')).decode('utf-8')
 
     # get publication date (prefer date when in print)
     if 'published-print' in resp['message'].keys():

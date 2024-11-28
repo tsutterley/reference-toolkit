@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_move_articles.py (11/2023)
+smart_move_articles.py (11/2024)
 Moves journal articles and supplements to the reference local directory
     using information from crossref.org
 
@@ -34,6 +34,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2024: remove colons from journal names
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -85,7 +86,7 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
         author = author.replace(UV, CV)
         journal = journal.replace(UV, PV)
     # remove spaces, dashes and apostrophes
-    author = re.sub(r'\s','_',author); author = re.sub('\-|\'','',author)
+    author = re.sub(r'\s',r'_',author); author = re.sub(r'\-|\'',r'',author)
 
     # get publication date (prefer date when in print)
     if 'published-print' in resp['message'].keys():
@@ -114,7 +115,8 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
     # else use the found journal abbreviation
     if not bool(rx.search(abbreviation_contents)):
         print(f'Abbreviation for {journal} not found')
-        abbreviation = journal
+        # remove colons from journal name
+        abbreviation = re.sub(r':',r'',journal)
     else:
         abbreviation = rx.findall(abbreviation_contents)[0]
 

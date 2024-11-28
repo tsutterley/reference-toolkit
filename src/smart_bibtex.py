@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (11/2023)
+smart_bibtex.py (11/2024)
 Creates a bibtex entry using information from crossref.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
@@ -29,6 +29,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 11/2024: use f-strings for print statements
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -169,10 +170,10 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 
     # remove line skips and series of whitespace from title
-    current_entry['title'] = re.sub(r'\s+',' ',current_entry['title'])
+    current_entry['title'] = re.sub(r'\s+',r' ',current_entry['title'])
     # remove spaces, dashes and apostrophes from author_directory
-    author_directory = re.sub(r'\s','_',author_directory)
-    author_directory = re.sub(r'\-|\'','',author_directory)
+    author_directory = re.sub(r'\s',r'_',author_directory)
+    author_directory = re.sub(r'\-|\'',r'',author_directory)
     year_directory, = re.findall(r'\d+',current_entry['year'])
 
     # create list of article keywords if present in bibliography file
@@ -187,7 +188,7 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     if (current_pages[0] is None) and (current_pages[1] is None):
         current_entry['pages'] = 'n/a--n/a'
     elif (current_pages[1] is None):
-        current_entry['pages'] = current_pages[0]
+        current_entry['pages'] = str(current_pages[0])
     else:
         current_entry['pages'] = f'{current_pages[0]}--{current_pages[1]}'
 
@@ -207,7 +208,8 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         fid = sys.stdout
 
     # print the bibtex citation
-    print('@{0}{{{1},'.format(current_key['entrytype'],current_key['citekey']),file=fid)
+    entrytype, citekey = current_key['entrytype'], current_key['citekey']
+    print(f'@{entrytype}{{{citekey},', file=fid)
     # sort output bibtex files as listed above
     field_indices = [bibtex_field_sort[b] for b in current_entry.keys()]
     field_tuple=zip(field_indices,current_entry.keys(),current_entry.values())
@@ -217,12 +219,12 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         v = re.sub(r'(?<=\s)\&',r'\\\&',v) if re.search(r'(?<=\s)\&',v) else v
         # do not put the month field in brackets
         if (k == 'month'):
-            print('{0} = {1},'.format(k,v.rstrip()),file=fid)
+            print(f'{k} = {v.rstrip()},', file=fid)
         elif (k == 'title'):
-            print('{0} = {{{{{1}}}}},'.format(k,v.rstrip()),file=fid)
+            print(f'{k} = {{{{{v.rstrip()}}}}},', file=fid)
         else:
-            print('{0} = {{{1}}},'.format(k,v.rstrip()),file=fid)
-    print('}',file=fid)
+            print(f'{k} = {{{v.strip()}}},', file=fid)
+    print('}', file=fid)
 
     # close the output file
     if OUTPUT:

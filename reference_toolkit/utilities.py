@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 u"""
-utilities.py (11/2023)
+utilities.py (11/2024)
 Reads the supplied referencerc file for default file path and file format
 
 UPDATE HISTORY:
+    Updated 11/2024: improve unique filename creation
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
         added more file operation functions and renamed to utilities.py
@@ -69,9 +70,11 @@ def read_referencerc(referencerc_file: str | pathlib.Path):
 
 # PURPOSE: open a unique filename adding a numerical instance if existing
 def create_unique_filename(filename: str | pathlib.Path):
+    # validate input filename
+    filename = pathlib.Path(filename).expanduser().absolute()
+    stem, suffix = filename.stem, filename.suffix
     # create counter to add to the end of the filename if existing
     counter = 1
-    filename = pathlib.Path(filename).expanduser().absolute()
     while counter:
         try:
             # open file descriptor only if the file doesn't exist
@@ -81,8 +84,8 @@ def create_unique_filename(filename: str | pathlib.Path):
         else:
             print(str(compressuser(filename)))
             return fd
-        # new filename adds counter the between fileBasename and fileExtension
-        filename = filename.with_name(f'{filename.stem}-{counter:d}{filename.suffix}')
+        # new filename adds counter before the file extension
+        filename = filename.with_name(f'{stem}-{counter:d}{suffix}')
         counter += 1
 
 def compressuser(filename: str | pathlib.Path):
