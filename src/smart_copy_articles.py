@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 u"""
-smart_copy_articles.py (11/2023)
+smart_copy_articles.py (06/2025)
 Copies journal articles and supplements from a website to a local directory
-     using information from crossref.org
+using information from crossref.org or datacite.org
 
 Enter DOI's of journals to copy a file from a URL to the reference path
 
@@ -18,6 +18,7 @@ INPUTS:
 COMMAND LINE OPTIONS:
     -D X, --doi X: DOI of the publication
     -S, --supplement: file is a supplemental file
+    -A X, --author-field X: Author field in JSON response
 
 PROGRAM DEPENDENCIES:
     utilities.py: Sets default file path and file format for output files
@@ -30,6 +31,9 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 06/2025: can try fetching JSON data from datacite.org
+        added option to choose the author field from the JSON response
+    Updated 11/2024: remove colons from journal names
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -55,47 +59,54 @@ import urllib.request
 import reference_toolkit
 
 # PURPOSE: create directories and copy a reference file after formatting
-def smart_copy_articles(remote_file,doi,SUPPLEMENT):
+def smart_copy_articles(remote_file, doi,
+        SUPPLEMENT=False,
+        AUTHOR_FIELD='author'
+    ):
     # get reference filepath and reference format from referencerc file
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     # input remote file scrubbed of any additional html information
-    fi = pathlib.Path(re.sub(r'\?[\_a-z]{1,4}\=(.*?)$','',remote_file))
+    fi = pathlib.Path(re.sub(r'\?[\_a-z]{1,4}\=(.*?)$',r'',remote_file))
     # get extension from file (assume pdf if extension cannot be extracted)
     fileExtension = fi.suffix if fi.suffix else '.pdf'
 
-    # open connection with crossref.org for DOI
-    crossref = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(doi))
-    request = urllib.request.Request(url=crossref)
+    # fetch json data for the given doi
     context = reference_toolkit.utilities._default_ssl_context
-    response = urllib.request.urlopen(request, timeout=60, context=context)
-    resp = json.loads(response.read())
+    resp = reference_toolkit.utilities.citeproc_json(doi, context=context)
 
     # get author and replace unicode characters in author with plain text
-    author = resp['message']['author'][0]['family']
-    # check if author fields are initially uppercase: change to title
-    author = author.title() if author.isupper() else author
+    try:
+        author = resp[AUTHOR_FIELD][0]['family']
+        # check if author fields are initially uppercase: change to title
+        author = author.title() if author.isupper() else author
+    except KeyError:
+        # check if author is a literal and do not modify case
+        author = resp[AUTHOR_FIELD][0]['literal']
+
     # get journal name
-    journal, = resp['message']['container-title']
+    journal, = resp['container-title']
     # 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
     for LV, CV, UV, PV in reference_toolkit.language_conversion():
         author = author.replace(UV, CV)
         journal = journal.replace(UV, PV)
     # remove spaces, dashes and apostrophes
-    author = re.sub('\s','_',author); author = re.sub(r'\-|\'','',author)
+    author = re.sub(r'\s',r'_',author); author = re.sub(r'\-|\'',r'',author)
 
     # get publication date (prefer date when in print)
-    if 'published-print' in resp['message'].keys():
-        date_parts, = resp['message']['published-print']['date-parts']
-    elif 'published-online' in resp['message'].keys():
-        date_parts, = resp['message']['published-online']['date-parts']
-    # extract year from date parts and convert to string
-    year = '{0:4d}'.format(date_parts[0])
+    for P in ['published-print','published-online','issued']:
+        try:
+            date_parts, = resp[P]['date-parts']
+            # extract year from date parts and convert to string
+            year = f'{date_parts[0]:4d}'
+        except:
+            pass
+        else:
+            break
 
     # get publication volume and number
-    vol = resp['message']['volume'] if 'volume' in resp['message'].keys() else ''
-    num = resp['message']['issue'] if 'issue' in resp['message'].keys() else ''
+    vol = resp['volume'] if 'volume' in resp.keys() else ''
+    num = resp['issue'] if 'issue' in resp.keys() else ''
 
     # file listing journal abbreviations modified from
     # https://github.com/JabRef/abbrv.jabref.org/tree/master/journals
@@ -112,7 +123,8 @@ def smart_copy_articles(remote_file,doi,SUPPLEMENT):
     # else use the found journal abbreviation
     if not bool(rx.search(abbreviation_contents)):
         print(f'Abbreviation for {journal} not found')
-        abbreviation = journal
+        # remove colons from journal name
+        abbreviation = re.sub(r':',r'',journal)
     else:
         abbreviation = rx.findall(abbreviation_contents)[0]
 
@@ -164,13 +176,15 @@ def main():
     parser.add_argument('--supplement','-S',
         default=False, action='store_true',
         help='File is an article supplement')
+    parser.add_argument('--author-field','-A',
+        default='author', type=str, 
+        help='Author field in JSON response')
     args = parser.parse_args()
 
     # check connection to url and then download article
-    crossref = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(args.doi))
-    if reference_toolkit.check_connection(crossref):
-        smart_copy_articles(args.url, args.doi, args.supplement)
+    smart_copy_articles(args.url, args.doi,
+        SUPPLEMENT=args.supplement,
+        AUTHOR_FIELD=args.author_field)
 
 # run main program
 if __name__ == '__main__':

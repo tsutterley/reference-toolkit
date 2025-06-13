@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-export_library.py (05/2023)
+export_library.py (11/2024)
 Exports library of individual BibTeX files into a single sorted BibTeX file
 
 CALLING SEQUENCE:
@@ -17,6 +17,7 @@ PROGRAM DEPENDENCIES:
     utilities.py: Sets default file path and file format for output files
 
 UPDATE HISTORY:
+    Updated 11/2024: use f-strings for print statements
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 12/2020: using argparse to set command line options
     Written 02/2018
@@ -92,7 +93,7 @@ def export_library(SORT=None, EXPORT=None):
     # print header with date created and total number of BibTeX entries
     print(time.strftime('%%%% BibTeX File Created on %Y-%m-%d',
         time.localtime()), file=fid)
-    print('%% Number of Entries: {0:d}\n'.format(len(bibtex_entries)), file=fid)
+    print(f'%% Number of Entries: {len(bibtex_entries):d}\n', file=fid)
     # sort by the chosen operator and print to file
     for key in sorted(bibtex_entries, key=eval(sorting_operator)):
         print(key.entry, file=fid)

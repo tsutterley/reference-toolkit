@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-move_journal_articles.py (05/2023)
+move_journal_articles.py (11/2024)
 Moves journal articles and supplements to the reference local directory
 
 Enter Author names, journal name, publication year and volume will copy a pdf
@@ -35,6 +35,7 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 11/2024: remove colons from journal names
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
     Updated 12/2020: using argparse to set command line options
@@ -75,7 +76,8 @@ def move_journal_articles(fi,author,journal,year,volume,number,SUPPLEMENT,CLEANU
     # else use the found journal abbreviation
     if not bool(rx.search(abbreviation_contents)):
         print(f'Abbreviation for {journal} not found')
-        abbreviation = journal
+        # remove colons from journal name
+        abbreviation = re.sub(r':',r'',journal)
     else:
         abbreviation = rx.findall(abbreviation_contents)[0]
 
