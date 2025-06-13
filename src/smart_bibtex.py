@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 u"""
-smart_bibtex.py (11/2024)
-Creates a bibtex entry using information from crossref.org
+smart_bibtex.py (06/2025)
+Creates a bibtex entry by parsing JSON responses
+from crossref.org or datacite.org
 
 Enter DOI's of journals to generate a bibtex entry with "universal" keys
 https://github.com/CrossRef/rest-api-doc
@@ -10,6 +11,7 @@ CALLING SEQUENCE:
     python smart_bibtex.py 10.1038/ngeo102
 
 COMMAND LINE OPTIONS:
+    -A X, --author-field X: Author field in JSON response
     -O, --output: Output to bibtex files (default to terminal)
     -V, --verbose: Verbose output of output files (if output)
 
@@ -29,6 +31,9 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 06/2025: can try fetching JSON data from datacite.org
+        added option to choose the author field from the JSON response
+    Updated 01/2025: put issn search within a try/except statement
     Updated 11/2024: use f-strings for print statements
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
@@ -47,27 +52,22 @@ from __future__ import print_function
 
 import sys
 import re
-import json
 import datetime
 import argparse
-import posixpath
-import urllib.request
-import urllib.parse
 import reference_toolkit
 
 # PURPOSE: create a formatted bibtex entry for a doi
-def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
+def smart_bibtex(doi,
+        AUTHOR_FIELD='author',
+        OUTPUT=False,
+        VERBOSE=False
+    ):
     # get reference filepath and reference format from referencerc file
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
 
-    # open connection with crossref.org for DOI
-    crossref = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(doi))
-    request = urllib.request.Request(url=crossref)
-    context = reference_toolkit.utilities._default_ssl_context
-    response = urllib.request.urlopen(request, timeout=60, context=context)
-    resp = json.loads(response.read())
+    # fetch json data for the given doi
+    resp = reference_toolkit.utilities.citeproc_json(doi)
 
     # sort bibtex fields in output
     bibtex_field_sort = {'address':15,'affiliation':16,'annote':25,'author':0,
@@ -76,9 +76,13 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         'keywords':28,'month':4,'note':23,'number':6,'organization':17,'pages':11,
         'publisher':14,'school':18,'series':20,'title':1,'type':26,'url':9,
         'volume':5,'year':3}
-    # map between crossref type entries and bibtex entries
-    bibtex_entry_map = {'journal-article':'article','book-chapter':'inbook',
-        'proceedings-article':'inproceedings'}
+    # map between JSON type entries and bibtex entries
+    bibtex_entry_map = {
+        'journal-article':'article', 'article':'article',
+        'book-chapter':'inbook', 'book':'book', 'monograph':'book',
+        'proceedings-article':'inproceedings',
+        'dataset':'misc'
+    }
 
     # create python dictionaries with entries and citekey
     current_entry = {}
@@ -89,12 +93,18 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
     current_keywords = []
 
     # bibtex entry type
-    current_key['entrytype'] = bibtex_entry_map[resp['message']['type']]
+    current_key['entrytype'] = bibtex_entry_map[resp['type']]
     # add entered doi to current_entry dictionary
     current_entry['doi'] = doi
 
     # check if author fields are initially uppercase: change to title
-    for a in resp['message']['author']:
+    for a in resp[AUTHOR_FIELD]:
+        # check if author is given as a literal string
+        if 'literal' in a.keys():
+            # do not change case or order of literal strings
+            current_authors.append(a['literal'])
+            continue
+        # if family and given names are present, use them
         family = a['family'].title() if a['family'].isupper() else a['family']
         given = a['given'].title() if a['given'].isupper() else a['given']
         # split initials if as a single variable
@@ -108,9 +118,9 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         current_authors.append(f'{family}, {given}')
 
     # get publication date (prefer date when in print)
-    for P,T in zip(['published-print','published-online'],['print','electronic']):
+    for P in ['published-print','published-online','issued']:
         try:
-            date_parts, = resp['message'][P]['date-parts']
+            date_parts, = resp[P]['date-parts']
         except:
             pass
         else:
@@ -124,34 +134,53 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         dt = datetime.datetime.strptime(f'{date_parts[1]:02d}','%m')
         current_entry['month'] = dt.strftime('%b').lower()
 
-    # get journal name and article title
-    current_entry['journal'], = resp['message']['container-title']
-    current_entry['title'], = resp['message']['title']
+    # get journal name
+    if 'container-title' in resp.keys() and bool(resp['container-title']):
+        if isinstance(resp['container-title'], list):
+            current_entry['journal'], = resp['container-title']
+        elif isinstance(resp['container-title'], str):
+            current_entry['journal'] = resp['container-title']
+    # get entry/article title
+    if 'title' in resp.keys() and bool(resp['title']):
+        if isinstance(resp['title'], list):
+            current_entry['title'], = resp['title']
+        elif isinstance(resp['title'], str):
+            current_entry['title'] = resp['title']
 
     # get publication volume
-    if 'volume' in resp['message'].keys():
-        current_entry['volume'] = resp['message']['volume']
+    if 'volume' in resp.keys() and bool(resp['volume']):
+        current_entry['volume'] = resp['volume']
+
     # get publication number
-    if 'issue' in resp['message'].keys():
-        current_entry['number'] = resp['message']['issue']
+    if 'issue' in resp.keys() and bool(resp['issue']):
+        current_entry['number'] = resp['issue']
+
     # get URL
-    if 'URL' in resp['message'].keys():
-        current_entry['url'] = resp['message']['URL']
+    if 'URL' in resp.keys() and bool(resp['URL']):
+        current_entry['url'] = resp['URL']
+
     # get pages
-    if 'page' in resp['message'].keys():
-        if bool(re.search(r'\d+',resp['message']['page'])):
+    if 'page' in resp.keys() and bool(resp['page']):
+        if bool(re.search(r'\d+',resp['page'])):
             # add starting page to current_pages array
-            pages = [int(p) for p in re.findall(r'\d+',resp['message']['page'])]
+            pages = [int(p) for p in re.findall(r'\d+',resp['page'])]
             current_pages[0] = pages[0]
             if (len(pages) > 1):
                 current_pages[1] = pages[1]
+
     # get ISSN (prefer issn for print)
-    if 'issn-type' in resp['message'].keys():
-        current_entry['issn'], = [i['value'] for i in
-            resp['message']['issn-type'] if i['type'] == T]
+    for T in['print','electronic']:
+        try:
+            current_entry['issn'], = [i['value'] for i in
+                resp['issn-type'] if i['type'] == T]
+        except:
+            pass
+        else:
+            break
+
     # get publisher
-    if 'publisher' in resp['message'].keys():
-        current_entry['publisher'] = resp['message']['publisher']
+    if 'publisher' in resp.keys() and bool(resp['publisher']):
+        current_entry['publisher'] = resp['publisher']
 
     # extract surname of first author
     firstauthor = str(current_authors[0].split(',')[0])
@@ -166,11 +195,14 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
         firstauthor = firstauthor.replace(UV, PV)
         author_directory = author_directory.replace(UV, CV)
         current_entry['author'] = current_entry['author'].replace(UV, LV)
-        current_entry['title'] = current_entry['title'].replace(UV, LV)
-        current_entry['journal'] = current_entry['journal'].replace(UV, LV)
+        if 'title' in current_entry.keys():
+            current_entry['title'] = current_entry['title'].replace(UV, LV)
+        if 'journal' in current_entry.keys():
+            current_entry['journal'] = current_entry['journal'].replace(UV, LV)
 
     # remove line skips and series of whitespace from title
-    current_entry['title'] = re.sub(r'\s+',r' ',current_entry['title'])
+    if 'title' in current_entry.keys():
+        current_entry['title'] = re.sub(r'\s+',r' ',current_entry['title'])
     # remove spaces, dashes and apostrophes from author_directory
     author_directory = re.sub(r'\s',r'_',author_directory)
     author_directory = re.sub(r'\-|\'',r'',author_directory)
@@ -186,7 +218,8 @@ def smart_bibtex(doi, OUTPUT=False, VERBOSE=False):
 
     # create entry for pages
     if (current_pages[0] is None) and (current_pages[1] is None):
-        current_entry['pages'] = 'n/a--n/a'
+        # no entry for pages available
+        pass
     elif (current_pages[1] is None):
         current_entry['pages'] = str(current_pages[0])
     else:
@@ -235,13 +268,16 @@ def main():
     # Read the system arguments listed after the program
     parser = argparse.ArgumentParser(
         description="""Creates a bibtex entry using information from
-            crossref.org
+            crossref.org or datacite.org
             """
     )
     # command line parameters
     parser.add_argument('doi',
         type=str, nargs='+',
         help='Digital Object Identifier (DOI) of the publication')
+    parser.add_argument('--author-field','-A',
+        default='author', type=str, 
+        help='Author field in JSON response')
     parser.add_argument('--output','-O',
         default=False, action='store_true',
         help='Output to bibtex file')
@@ -252,10 +288,10 @@ def main():
 
     # run for each DOI entered after the program
     for doi in args.doi:
-        crossref = posixpath.join('https://api.crossref.org','works',
-            urllib.parse.quote_plus(doi))
-        if reference_toolkit.check_connection(crossref):
-            smart_bibtex(doi, OUTPUT=args.output, VERBOSE=args.verbose)
+        smart_bibtex(doi,
+            AUTHOR_FIELD=args.author_field,
+            OUTPUT=args.output,
+            VERBOSE=args.verbose)
 
 # run main program
 if __name__ == '__main__':

@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 u"""
-smart_citekeys.py (11/2023)
-Generates Papers2-like cite keys for BibTeX using information from crossref.org
+smart_citekeys.py (06/2025)
+Generates Papers2-like cite keys for BibTeX using information
+from crossref.org or datacite.org
 
 Enter DOI's of journals to generate "universal" keys
 
 CALLING SEQUENCE:
     python smart_citekeys.py "10.1038/ngeo102"
     will result in Rignot:2008ct as the citekey
+  
+COMMAND LINE OPTIONS:
+    -A X, --author-field X: Author field in JSON response
 
 PYTHON DEPENDENCIES:
     future: Compatibility layer between Python 2 and Python 3
@@ -23,6 +27,8 @@ NOTES:
     Check unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 06/2025: can try fetching JSON data from datacite.org
+        added option to choose the author field from the JSON response
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -41,27 +47,24 @@ UPDATE HISTORY:
 from __future__ import print_function
 
 import re
-import json
 import argparse
-import posixpath
-import urllib.request
-import urllib.parse
 import reference_toolkit
 
 # PURPOSE: create a Papers2-like cite key using the DOI
-def smart_citekey(doi):
-    # open connection with crossref.org for DOI
-    crossref = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(doi))
-    request = urllib.request.Request(url=crossref)
-    context = reference_toolkit.utilities._default_ssl_context
-    response = urllib.request.urlopen(request, timeout=60, context=context)
-    resp = json.loads(response.read())
+def smart_citekey(doi, AUTHOR_FIELD='author'):
+
+    # fetch json data for the given doi
+    resp = reference_toolkit.utilities.citeproc_json(doi)
 
     # get author and replace unicode characters in author with plain text
-    author = resp['message']['author'][0]['family']
-    # check if author fields are initially uppercase: change to title
-    author = author.title() if author.isupper() else author
+    try:
+        author = resp[AUTHOR_FIELD][0]['family']
+        # check if author fields are initially uppercase: change to title
+        author = author.title() if author.isupper() else author
+    except KeyError:
+        # check if author is a literal and do not modify case
+        author = resp[AUTHOR_FIELD][0]['literal']
+
     # 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
     for LV, CV, UV, PV in reference_toolkit.language_conversion():
         author = author.replace(UV, PV)
@@ -69,12 +72,15 @@ def smart_citekey(doi):
     author = re.sub(rb'\s|\-|\'',rb'',author.encode('utf-8')).decode('utf-8')
 
     # get publication date (prefer date when in print)
-    if 'published-print' in resp['message'].keys():
-        date_parts, = resp['message']['published-print']['date-parts']
-    elif 'published-online' in resp['message'].keys():
-        date_parts, = resp['message']['published-online']['date-parts']
-    # extract year from date parts
-    year = date_parts[0]
+    for P in ['published-print','published-online','issued']:
+        try:
+            date_parts, = resp[P]['date-parts']
+            # extract year from date parts
+            year = date_parts[0]
+        except:
+            pass
+        else:
+            break
 
     # create citekey suffix using a DOI-based universal citekey
     return reference_toolkit.gen_citekey(author, year, doi, None)
@@ -91,15 +97,15 @@ def main():
     parser.add_argument('doi',
         type=str, nargs='+',
         help='Digital Object Identifier (DOI) of the publication')
+    parser.add_argument('--author-field','-A',
+        default='author', type=str, 
+        help='Author field in JSON response')
     args = parser.parse_args()
 
     # run for each DOI entered after the program
     for doi in args.doi:
-        crossref = posixpath.join('https://api.crossref.org','works',
-            urllib.parse.quote_plus(doi))
-        if reference_toolkit.check_connection(crossref):
-            citekey = smart_citekey(doi)
-            print(citekey)
+        citekey = smart_citekey(doi, AUTHOR_FIELD=args.author_field)
+        print(citekey)
 
 # run main program
 if __name__ == '__main__':

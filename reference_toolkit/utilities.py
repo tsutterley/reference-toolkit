@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 u"""
-utilities.py (11/2024)
+utilities.py (06/2025)
 Reads the supplied referencerc file for default file path and file format
 
 UPDATE HISTORY:
+    Updated 06/2025: add functions to query JSON citation metadata
     Updated 11/2024: improve unique filename creation
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
@@ -18,9 +19,12 @@ from __future__ import annotations
 import sys
 import re
 import ssl
+import json
 import inspect
 import pathlib
+import posixpath
 import urllib.request
+import urllib.parse
 
 # PURPOSE: get absolute path within a package from a relative path
 def get_data_path(relpath: list | str | pathlib.Path):
@@ -165,3 +169,65 @@ def check_connection(
         raise RuntimeError('Check internet connection')
     else:
         return True
+
+def load_json(
+        HOST: str,
+        timeout: int | None = 20,
+        context: ssl.SSLContext = _default_ssl_context
+    ):
+    """
+    Loads JSON data from a given http host
+
+    Parameters
+    ----------
+    HOST: str
+        remote http host with JSON data
+    timeout: int
+        timeout in seconds for blocking operations
+    context: obj, default reference_toolkit.utilities._default_ssl_context
+        SSL context for ``urllib`` opener object
+    """
+    # open connection for DOI
+    request = urllib.request.Request(url=HOST)
+    response = urllib.request.urlopen(request,
+        timeout=timeout, context=context)
+    return json.loads(response.read())
+
+def citeproc_json(doi,
+        endpoints=['crossref','datacite'],
+        **kwargs
+    ):
+    """
+    Fetches JSON-format citation metadata for a given DOI
+
+    Parameters
+    ----------
+    doi : str
+        Digital Object Identifier (DOI)
+    endpoints : list, default ['crossref', 'datacite']
+        List of endpoints to query for citation metadata
+    """
+    # crossref.org for DOI
+    url = posixpath.join('https://api.crossref.org','works',
+        urllib.parse.quote_plus(doi))
+    # try to fetch data from crossref.org URL
+    if ('crossref' in endpoints):
+        try:
+            resp = load_json(url, **kwargs)
+        except urllib.error.HTTPError as e:
+            pass
+        else:
+            return resp['message']
+    # datacite.org for DOI
+    url = posixpath.join('https://api.datacite.org','application',
+        'vnd.citationstyles.csl+json', urllib.parse.quote_plus(doi))
+    # try to fetch data from datacite.org URL
+    if ('datacite' in endpoints):
+        try:
+            resp = load_json(url, **kwargs)
+        except urllib.error.HTTPError as e:
+            pass
+        else:
+            return resp
+    # raise error if no data could be fetched
+    raise ValueError(f'Could not fetch JSON data for DOI: {doi}')

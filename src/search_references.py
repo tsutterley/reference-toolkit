@@ -18,12 +18,14 @@ COMMAND LINE OPTIONS:
     -O, --open: open publication directory with found matches
     -W, --webpage: open publication webpage with found matches
     -E X, --export X: export all found matches to a single bibtex file
+    -R, --reverse: reverse the search returns
 
 PROGRAM DEPENDENCIES:
     utilities.py: Sets default file path and file format for output files
     language_conversion.py: mapping to convert symbols between languages
 
 UPDATE HISTORY:
+    Updated 06/2025: can reverse the order of the search results
     Updated 11/2024: use f-strings for print statements
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -51,7 +53,7 @@ import reference_toolkit
 # Reads bibtex files for each article stored in the working directory for
 # keywords, authors, journal, etc
 def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
-    OPEN=False, WEBPAGE=False, EXPORT=None):
+    OPEN=False, WEBPAGE=False, EXPORT=None, REVERSE=False):
     # get reference filepath and reference format from referencerc file
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
@@ -84,11 +86,15 @@ def search_references(AUTHOR, JOURNAL, YEAR, KEYWORDS, DOI, FIRST=False,
 
     # find directories of years
     regex_years = r'|'.join(YEAR) if YEAR else r'\d+'
-    years = [sd for sd in datapath.iterdir() if
-        re.match(regex_years, sd.name) and sd.is_dir()]
+    years = sorted([sd for sd in datapath.iterdir() if
+        re.match(regex_years, sd.name) and sd.is_dir()])
+    # reverse the order of the years
+    if REVERSE:
+        years = reversed(years)
+    # number of matches
     match_count = 0
     query_count = 0
-    for Y in sorted(years):
+    for Y in years:
         # find author directories in year
         authors = [sd for sd in Y.iterdir() if sd.is_dir()]
         for A in sorted(authors):
@@ -192,12 +198,15 @@ def main():
     parser.add_argument('--export','-E',
         type=pathlib.Path,
         help='Export found matches to a single BibTeX file')
+    parser.add_argument('--reverse','-R',
+        default=False, action='store_true',
+        help='Open publication webpage with found matches')
     args = parser.parse_args()
 
     # search references for requested fields
     search_references(args.author, args.journal, args.year, args.keyword,
         args.doi, FIRST=args.first, OPEN=args.open, WEBPAGE=args.webpage,
-        EXPORT=args.export)
+        EXPORT=args.export, REVERSE=args.reverse)
 
 # run main program
 if __name__ == '__main__':

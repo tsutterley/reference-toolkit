@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-format_bibtex.py (11/2024)
+format_bibtex.py (06/2025)
 Reformats journal bibtex files into a standard form with Universal citekeys
 
 COMMAND LINE OPTIONS:
@@ -22,6 +22,7 @@ NOTES:
         https://github.com/cparnot/universal-citekey-js
 
 UPDATE HISTORY:
+    Updated 06/2025: add misc to list of bibtex entry formats
     Updated 11/2024: use f-strings for print statements
     Updated 05/2023: use pathlib to find and operate on paths
     Updated 09/2022: drop python2 compatibility
@@ -53,8 +54,8 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     # valid bibtex entry types
     bibtex_entry_types = ['article','book','booklet','conference','inbook',
-        'incollection','inproceedings','manual','mastersthesis','phdthesis',
-        'proceedings','techreport','unpublished','webpage']
+        'incollection','inproceedings','manual','mastersthesis','misc',
+        'phdthesis','proceedings','techreport','unpublished','webpage']
     entry_regex = r'[?<=\@](' + '|'.join(bibtex_entry_types) + r')[\s]?\{(.*?)[\s]?,[\s]?'
     R1 = re.compile(entry_regex, flags=re.IGNORECASE)
     # bibtex fields to be printed in the output file
@@ -129,6 +130,11 @@ def format_bibtex(file_contents, OUTPUT=False, VERBOSE=False):
         elif (key.lower() in ('author','editor')):
             current_authors = []
             for A in re.split(r' and ', val, flags=re.IGNORECASE):
+                # keep format as is if no comma
+                if (',' not in A):
+                    current_authors.append(A)
+                    continue
+                # verify format
                 ALN,AGN = A.split(', ')
                 # split initials if as a single variable
                 if re.match(r'([A-Z])\.([A-Z])\.', AGN):
@@ -272,7 +278,8 @@ def main():
         try:
             format_bibtex(re.sub(r'(\s+)\n',r'\n',file_contents),
                 OUTPUT=args.output, VERBOSE=args.verbose)
-        except:
+        except Exception as exc:
+            print(exc)
             pass
         else:
             # remove the input file

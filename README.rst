@@ -9,6 +9,7 @@ Python-based tools for managing bibliographies using BibTeX
 - `ReadCube Papers <https://www.readcube.com/papers/>`_
 - `crossref REST API <https://api.crossref.org/>`_
 - `crossref REST API status <http://status.crossref.org/>`_
+- `DataCite REST API <https://api.datacite.org/>`_
 
 Stores journal articles in a tree structure based from directory provided in the .referencerc file
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 u"""
-smart_move_articles.py (11/2024)
+smart_move_articles.py (06/2025)
 Moves journal articles and supplements to the reference local directory
-    using information from crossref.org
+using information from crossref.org or datacite.org
 
 Enter DOI's of journals to move a file to the reference path
 
@@ -17,6 +17,7 @@ INPUTS:
 COMMAND LINE OPTIONS:
     -D X, --doi X: DOI of the publication
     -S, --supplement: file is a supplemental file
+    -A X, --author-field X: Author field in JSON response
     -C, --cleanup: Remove the input file after moving
 
 PYTHON DEPENDENCIES:
@@ -34,6 +35,8 @@ NOTES:
         unicode characters with http://www.fileformat.info/
 
 UPDATE HISTORY:
+    Updated 06/2025: can try fetching JSON data from datacite.org
+        added option to choose the author field from the JSON response
     Updated 11/2024: remove colons from journal names
     Updated 11/2023: updated ssl context to fix deprecation errors
     Updated 05/2023: use pathlib to find and operate on paths
@@ -60,27 +63,32 @@ import urllib.parse
 import reference_toolkit
 
 # PURPOSE: create directories and move a reference file after formatting
-def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
+def smart_move_articles(fi, doi,
+        SUPPLEMENT=False,
+        AUTHOR_FIELD='author',
+        CLEANUP=False
+    ):
     # get reference filepath and reference format from referencerc file
     referencerc = reference_toolkit.get_data_path(['assets','.referencerc'])
     datapath, dataformat = reference_toolkit.read_referencerc(referencerc)
     # get extension from file (assume pdf if extension cannot be extracted)
     fileExtension = fi.suffix if fi.suffix else '.pdf'
 
-    # open connection with crossref.org for DOI
-    crossref = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(doi))
-    request = urllib.request.Request(url=crossref)
+    # fetch json data for the given doi
     context = reference_toolkit.utilities._default_ssl_context
-    response = urllib.request.urlopen(request, timeout=60, context=context)
-    resp = json.loads(response.read())
+    resp = reference_toolkit.utilities.citeproc_json(doi, context=context)
 
     # get author and replace unicode characters in author with plain text
-    author = resp['message']['author'][0]['family']
-    # check if author fields are initially uppercase: change to title
-    author = author.title() if author.isupper() else author
+    try:
+        author = resp[AUTHOR_FIELD][0]['family']
+        # check if author fields are initially uppercase: change to title
+        author = author.title() if author.isupper() else author
+    except KeyError:
+        # check if author is a literal and do not modify case
+        author = resp[AUTHOR_FIELD][0]['literal']
+
     # get journal name
-    journal, = resp['message']['container-title']
+    journal, = resp['container-title']
     # 1st column: latex, 2nd: combining unicode, 3rd: unicode, 4th: plain text
     for LV, CV, UV, PV in reference_toolkit.language_conversion():
         author = author.replace(UV, CV)
@@ -89,16 +97,19 @@ def smart_move_articles(fi,doi,SUPPLEMENT,CLEANUP):
     author = re.sub(r'\s',r'_',author); author = re.sub(r'\-|\'',r'',author)
 
     # get publication date (prefer date when in print)
-    if 'published-print' in resp['message'].keys():
-        date_parts, = resp['message']['published-print']['date-parts']
-    elif 'published-online' in resp['message'].keys():
-        date_parts, = resp['message']['published-online']['date-parts']
-    # extract year from date parts and convert to string
-    year = f'{date_parts[0]:4d}'
+    for P in ['published-print','published-online','issued']:
+        try:
+            date_parts, = resp[P]['date-parts']
+            # extract year from date parts and convert to string
+            year = f'{date_parts[0]:4d}'
+        except:
+            pass
+        else:
+            break
 
     # get publication volume and number
-    vol = resp['message']['volume'] if 'volume' in resp['message'].keys() else ''
-    num = resp['message']['issue'] if 'issue' in resp['message'].keys() else ''
+    vol = resp['volume'] if 'volume' in resp.keys() else ''
+    num = resp['issue'] if 'issue' in resp.keys() else ''
 
     # file listing journal abbreviations modified from
     # https://github.com/JabRef/abbrv.jabref.org/tree/master/journals
@@ -165,16 +176,19 @@ def main():
     parser.add_argument('--supplement','-S',
         default=False, action='store_true',
         help='File is an article supplement')
+    parser.add_argument('--author-field','-A',
+        default='author', type=str, 
+        help='Author field in JSON response')
     parser.add_argument('--cleanup','-C',
         default=False, action='store_true',
         help='Remove input file after moving')
     args = parser.parse_args()
 
     # move article file to reference directory
-    crossref = posixpath.join('https://api.crossref.org','works',
-        urllib.parse.quote_plus(args.doi))
-    if reference_toolkit.check_connection(crossref):
-        smart_move_articles(args.infile, args.doi, args.supplement, args.cleanup)
+    smart_move_articles(args.infile, args.doi,
+        SUPPLEMENT=args.supplement,
+        AUTHOR_FIELD=args.author_field,
+        CLEANUP=args.cleanup)
 
 # run main program
 if __name__ == '__main__':
